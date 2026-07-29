@@ -51,6 +51,21 @@ class BlockRepositoryImpl(BlockRepository):
             return None
         return self._model_to_entity(model)
 
+    async def get_all_blocks(self, skip: int = 0, limit: int = 100) -> list[Block]:
+        stmt = (
+            select(BlockModel)
+            .order_by(desc(BlockModel.block_number))
+            .offset(skip)
+            .limit(limit)
+            .options(selectinload(BlockModel.transactions))
+        )
+        result = await self._session.execute(stmt)
+        models = result.scalars().all()
+        return [self._model_to_entity(m) for m in models]
+
+    async def replace_chain(self, new_chain_data: list[dict]) -> None:
+        pass
+
     def _model_to_entity(self, model: BlockModel) -> Block:
         tx_ids = [tx.id for tx in model.transactions] if hasattr(model, "transactions") else []
         return Block(
