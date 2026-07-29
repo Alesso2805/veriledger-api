@@ -16,6 +16,8 @@ class SHA256HasherImpl(HasherService):
             "amount": float(transaction.amount),
             "timestamp": transaction.timestamp.isoformat(),
         }
+        if transaction.payload is not None:
+            tx_data["payload"] = transaction.payload
         # Dump to JSON with sorted keys to ensure determinism
         tx_string = json.dumps(tx_data, sort_keys=True)
         return hashlib.sha256(tx_string.encode("utf-8")).hexdigest()

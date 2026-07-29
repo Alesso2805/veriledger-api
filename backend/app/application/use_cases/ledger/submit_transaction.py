@@ -37,6 +37,8 @@ class SubmitTransactionUseCase:
             "receiver_address": request.receiver_address,
             "sender_address": request.sender_address,
         }
+        if request.payload is not None:
+            payload["payload"] = request.payload
         payload_str = json.dumps(payload, sort_keys=True)
         
         is_valid = self.signature_service.verify_signature(
@@ -54,6 +56,7 @@ class SubmitTransactionUseCase:
             status=TransactionStatus.PENDING,
             timestamp=now,
             signature=request.signature,
+            payload=request.payload,
         )
         tx_hash = self.hasher.hash_transaction(temp_tx)
         

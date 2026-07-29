@@ -23,6 +23,7 @@ class TransactionRepositoryImpl(TransactionRepository):
             timestamp=transaction.timestamp,
             signature=transaction.signature,
             tx_hash=transaction.tx_hash,
+            payload=transaction.payload,
             block_id=transaction.block_id,
         )
         self._session.add(model)
@@ -100,5 +101,6 @@ class TransactionRepositoryImpl(TransactionRepository):
             timestamp=model.timestamp,
             signature=model.signature,
             tx_hash=model.tx_hash,
+            payload=model.payload,
             block_id=model.block_id,
         )

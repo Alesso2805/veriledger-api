@@ -43,6 +43,7 @@ async def submit_transaction(
         timestamp=transaction.timestamp,
         signature=transaction.signature,
         tx_hash=transaction.tx_hash,
+        payload=transaction.payload,
         block_id=transaction.block_id,
     )
 
@@ -69,5 +70,6 @@ async def get_transaction(
         timestamp=transaction.timestamp,
         signature=transaction.signature,
         tx_hash=transaction.tx_hash,
+        payload=transaction.payload,
         block_id=transaction.block_id,
     )
