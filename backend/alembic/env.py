@@ -9,6 +9,7 @@ from alembic import context
 
 from backend.app.core.config import settings
 from backend.app.infrastructure.database import Base
+import backend.app.infrastructure.models  # noqa: F401
 
 config = context.config
 

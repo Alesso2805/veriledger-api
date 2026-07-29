@@ -1,6 +1,8 @@
 import logging
 import sys
+
 import structlog
+
 
 def setup_logging(json_logs: bool = False) -> None:
     logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(message)s")
