@@ -5,6 +5,10 @@ from typing import List
 from pydantic import BaseModel
 
 
+class MineBlockRequestDTO(BaseModel):
+    miner_address: str
+
+
 class BlockResponseDTO(BaseModel):
     id: str
     block_number: int

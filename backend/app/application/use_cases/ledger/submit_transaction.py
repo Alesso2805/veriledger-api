@@ -21,9 +21,16 @@ class SubmitTransactionUseCase:
         self.signature_service = signature_service
 
     async def execute(self, request: TransactionCreateRequestDTO) -> Transaction:
+        # Check if sender has enough balance
+        balance = await self.tx_repo.get_balance(request.sender_address)
+        total_required = request.amount + request.fee
+        if balance < total_required:
+            raise ValueError(f"Insufficient funds. Balance: {balance}, Required: {total_required}")
+
         # Reconstruct the deterministic payload that the user signed
         payload = {
             "amount": float(request.amount),
+            "fee": float(request.fee),
             "receiver_address": request.receiver_address,
             "sender_address": request.sender_address,
         }
@@ -43,6 +50,7 @@ class SubmitTransactionUseCase:
             sender_address=request.sender_address,
             receiver_address=request.receiver_address,
             amount=request.amount,
+            fee=request.fee,
             status=TransactionStatus.PENDING,
             timestamp=now,
             signature=request.signature,

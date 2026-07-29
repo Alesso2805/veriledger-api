@@ -16,6 +16,7 @@ class TransactionModel(BaseModel):
     sender_address: Mapped[str] = mapped_column(String, index=True)
     receiver_address: Mapped[str] = mapped_column(String, index=True)
     amount: Mapped[float] = mapped_column(Numeric(18, 8))
+    fee: Mapped[float] = mapped_column(Numeric(18, 8), default=0.0, server_default="0.0")
     status: Mapped[TransactionStatus] = mapped_column(SAEnum(TransactionStatus), index=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     signature: Mapped[str] = mapped_column(String)

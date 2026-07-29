@@ -18,6 +18,7 @@ class TransactionRepositoryImpl(TransactionRepository):
             sender_address=transaction.sender_address,
             receiver_address=transaction.receiver_address,
             amount=transaction.amount,
+            fee=transaction.fee,
             status=transaction.status,
             timestamp=transaction.timestamp,
             signature=transaction.signature,
@@ -61,12 +62,34 @@ class TransactionRepositoryImpl(TransactionRepository):
             await self._session.commit()
         return transaction
 
+    async def get_balance(self, address: str) -> float:
+        # Received amounts (where status is CONFIRMED)
+        stmt_in = select(TransactionModel).where(
+            TransactionModel.receiver_address == address,
+            TransactionModel.status == TransactionStatus.CONFIRMED
+        )
+        res_in = await self._session.execute(stmt_in)
+        incoming_txs = res_in.scalars().all()
+        received = sum(float(tx.amount) for tx in incoming_txs)
+
+        # Sent amounts + fees (where status is PENDING or CONFIRMED to avoid double spend in mempool)
+        stmt_out = select(TransactionModel).where(
+            TransactionModel.sender_address == address,
+            TransactionModel.status.in_([TransactionStatus.CONFIRMED, TransactionStatus.PENDING])
+        )
+        res_out = await self._session.execute(stmt_out)
+        outgoing_txs = res_out.scalars().all()
+        sent = sum(float(tx.amount) + float(tx.fee) for tx in outgoing_txs)
+
+        return received - sent
+
     def _model_to_entity(self, model: TransactionModel) -> Transaction:
         return Transaction(
             id=model.id,
             sender_address=model.sender_address,
             receiver_address=model.receiver_address,
             amount=float(model.amount),
+            fee=float(model.fee),
             status=model.status,
             timestamp=model.timestamp,
             signature=model.signature,

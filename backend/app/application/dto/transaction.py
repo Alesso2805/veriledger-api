@@ -10,6 +10,7 @@ class TransactionCreateRequestDTO(BaseModel):
     sender_address: str
     receiver_address: str
     amount: float = Field(..., gt=0)
+    fee: float = Field(default=0.0, ge=0)
     signature: str
 
 
@@ -18,6 +19,7 @@ class TransactionResponseDTO(BaseModel):
     sender_address: str
     receiver_address: str
     amount: float
+    fee: float
     status: TransactionStatus
     timestamp: datetime
     signature: str

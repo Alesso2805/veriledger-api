@@ -16,6 +16,7 @@ class Transaction:
     sender_address: str
     receiver_address: str
     amount: float
+    fee: float
     status: TransactionStatus
     timestamp: datetime
     signature: str = ""

@@ -24,3 +24,7 @@ class TransactionRepository(ABC):
     @abstractmethod
     async def update(self, transaction: Transaction) -> Transaction:
         pass
+
+    @abstractmethod
+    async def get_balance(self, address: str) -> float:
+        pass
