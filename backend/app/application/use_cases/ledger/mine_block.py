@@ -1,3 +1,5 @@
+import asyncio
+import httpx
 import uuid
 from datetime import datetime, timezone
 
@@ -6,6 +8,7 @@ from backend.app.domain.entities.block import Block
 from backend.app.domain.entities.transaction import TransactionStatus, Transaction
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
+from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.services.consensus import ConsensusService
 from backend.app.domain.ports.services.hashing import HasherService
 
@@ -17,11 +20,13 @@ class MineBlockUseCase:
         tx_repo: TransactionRepository,
         consensus_service: ConsensusService,
         hasher: HasherService,
+        node_repo: NodeRepository = None,
     ):
         self.block_repo = block_repo
         self.tx_repo = tx_repo
         self.consensus_service = consensus_service
         self.hasher = hasher
+        self.node_repo = node_repo
 
     async def execute(self, miner_address: str) -> BlockResponseDTO:
         # Get pending transactions
@@ -88,6 +93,10 @@ class MineBlockUseCase:
             tx.block_id = block.id
             await self.tx_repo.update(tx)
 
+        # Broadcast resolve signal
+        if self.node_repo:
+            asyncio.create_task(self._broadcast_block())
+
         return BlockResponseDTO(
             id=block.id,
             block_number=block.block_number,
@@ -97,3 +106,15 @@ class MineBlockUseCase:
             block_hash=block.block_hash,
             transaction_ids=block.transaction_ids,
         )
+
+    async def _broadcast_block(self):
+        nodes = await self.node_repo.get_all()
+        if not nodes:
+            return
+            
+        async with httpx.AsyncClient() as client:
+            tasks = []
+            for node in nodes:
+                # Trigger peers to resolve conflicts with our new chain
+                tasks.append(client.post(f"{node.url}/nodes/resolve"))
+            await asyncio.gather(*tasks, return_exceptions=True)

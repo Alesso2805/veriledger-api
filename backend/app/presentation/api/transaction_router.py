@@ -6,6 +6,7 @@ from backend.app.application.use_cases.ledger.get_transaction import GetTransact
 from backend.app.application.use_cases.ledger.submit_transaction import SubmitTransactionUseCase
 from backend.app.domain.entities.user import User
 from backend.app.infrastructure.database import get_db_session
+from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.security.sha256_hasher import SHA256HasherImpl
 from backend.app.infrastructure.security.ed25519_service import Ed25519ServiceImpl
@@ -21,10 +22,11 @@ async def submit_transaction(
     current_user: User = Depends(get_current_user),
 ) -> TransactionResponseDTO:
     tx_repo = TransactionRepositoryImpl(db)
+    node_repo = NodeRepositoryImpl(db)
     hasher = SHA256HasherImpl()
     signature_service = Ed25519ServiceImpl()
     
-    use_case = SubmitTransactionUseCase(tx_repo, hasher, signature_service)
+    use_case = SubmitTransactionUseCase(tx_repo, hasher, signature_service, node_repo)
 
     try:
         transaction = await use_case.execute(request)

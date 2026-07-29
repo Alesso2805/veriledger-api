@@ -23,7 +23,7 @@ class ResolveConflictsUseCase:
         async with httpx.AsyncClient() as client:
             for node in nodes:
                 try:
-                    response = await client.get(f"{node.url}/blocks")
+                    response = await client.get(f"{node.url}/blocks/full")
                     if response.status_code == 200:
                         data = response.json()
                         length = data.get("total", 0)

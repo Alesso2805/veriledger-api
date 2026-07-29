@@ -64,7 +64,45 @@ class BlockRepositoryImpl(BlockRepository):
         return [self._model_to_entity(m) for m in models]
 
     async def replace_chain(self, new_chain_data: list[dict]) -> None:
-        pass
+        from sqlalchemy import delete
+        from backend.app.infrastructure.models.transaction_model import TransactionModel
+        from backend.app.domain.entities.transaction import TransactionStatus
+        from dateutil.parser import isoparse
+        
+        # 1. Delete all blocks (this will set block_id to NULL for txs if no cascade, so we delete txs too)
+        await self._session.execute(delete(TransactionModel).where(TransactionModel.status == TransactionStatus.CONFIRMED))
+        await self._session.execute(delete(BlockModel))
+        
+        # 2. Re-insert the new chain
+        # Note: We process them from oldest to newest if the list is newest first, wait. 
+        # Usually list from /blocks is newest first (desc). So we just insert them as they are.
+        for block_data in new_chain_data:
+            block = BlockModel(
+                id=block_data["id"],
+                block_number=block_data["block_number"],
+                previous_hash=block_data["previous_hash"],
+                timestamp=isoparse(block_data["timestamp"]),
+                nonce=block_data["nonce"],
+                block_hash=block_data["block_hash"],
+            )
+            self._session.add(block)
+            
+            for tx_data in block_data.get("transactions", []):
+                tx = TransactionModel(
+                    id=tx_data["id"],
+                    sender_address=tx_data["sender_address"],
+                    receiver_address=tx_data["receiver_address"],
+                    amount=tx_data["amount"],
+                    fee=tx_data["fee"],
+                    status=TransactionStatus(tx_data["status"]),
+                    timestamp=isoparse(tx_data["timestamp"]),
+                    signature=tx_data["signature"],
+                    tx_hash=tx_data["tx_hash"],
+                    block_id=block.id,
+                )
+                self._session.add(tx)
+        
+        await self._session.commit()
 
     def _model_to_entity(self, model: BlockModel) -> Block:
         tx_ids = [tx.id for tx in model.transactions] if hasattr(model, "transactions") else []

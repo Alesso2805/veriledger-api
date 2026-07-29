@@ -22,6 +22,10 @@ class TransactionRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_by_block_id(self, block_id: str) -> list[Transaction]:
+        pass
+
+    @abstractmethod
     async def update(self, transaction: Transaction) -> Transaction:
         pass
 

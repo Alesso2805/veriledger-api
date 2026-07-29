@@ -51,6 +51,12 @@ class TransactionRepositoryImpl(TransactionRepository):
         models = result.scalars().all()
         return [self._model_to_entity(m) for m in models]
 
+    async def get_by_block_id(self, block_id: str) -> list[Transaction]:
+        stmt = select(TransactionModel).where(TransactionModel.block_id == block_id)
+        result = await self._session.execute(stmt)
+        models = result.scalars().all()
+        return [self._model_to_entity(m) for m in models]
+
     async def update(self, transaction: Transaction) -> Transaction:
         stmt = select(TransactionModel).where(TransactionModel.id == transaction.id)
         result = await self._session.execute(stmt)
