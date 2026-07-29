@@ -26,6 +26,7 @@ class SHA256HasherImpl(HasherService):
             "block_number": block.block_number,
             "previous_hash": block.previous_hash,
             "timestamp": block.timestamp.isoformat(),
+            "nonce": getattr(block, 'nonce', 0),
             "transaction_ids": sorted(block.transaction_ids),
         }
         block_string = json.dumps(block_data, sort_keys=True)

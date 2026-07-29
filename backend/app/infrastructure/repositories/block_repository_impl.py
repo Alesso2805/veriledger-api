@@ -19,6 +19,7 @@ class BlockRepositoryImpl(BlockRepository):
             block_number=block.block_number,
             previous_hash=block.previous_hash,
             timestamp=block.timestamp,
+            nonce=block.nonce,
             block_hash=block.block_hash,
         )
         self._session.add(model)
@@ -57,6 +58,7 @@ class BlockRepositoryImpl(BlockRepository):
             block_number=model.block_number,
             previous_hash=model.previous_hash,
             timestamp=model.timestamp,
+            nonce=model.nonce,
             block_hash=model.block_hash,
             transaction_ids=tx_ids,
         )

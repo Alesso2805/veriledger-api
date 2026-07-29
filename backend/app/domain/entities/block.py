@@ -9,5 +9,6 @@ class Block:
     block_number: int
     previous_hash: str
     timestamp: datetime
+    nonce: int = 0
     block_hash: Optional[str] = None
     transaction_ids: list[str] = field(default_factory=list)

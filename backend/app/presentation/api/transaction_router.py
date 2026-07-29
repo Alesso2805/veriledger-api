@@ -8,6 +8,7 @@ from backend.app.domain.entities.user import User
 from backend.app.infrastructure.database import get_db_session
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.security.sha256_hasher import SHA256HasherImpl
+from backend.app.infrastructure.security.ed25519_service import Ed25519ServiceImpl
 from backend.app.presentation.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
@@ -21,9 +22,15 @@ async def submit_transaction(
 ) -> TransactionResponseDTO:
     tx_repo = TransactionRepositoryImpl(db)
     hasher = SHA256HasherImpl()
-    use_case = SubmitTransactionUseCase(tx_repo, hasher)
+    signature_service = Ed25519ServiceImpl()
+    
+    use_case = SubmitTransactionUseCase(tx_repo, hasher, signature_service)
 
-    transaction = await use_case.execute(request)
+    try:
+        transaction = await use_case.execute(request)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     return TransactionResponseDTO(
         id=transaction.id,
         sender_address=transaction.sender_address,
@@ -31,10 +38,10 @@ async def submit_transaction(
         amount=transaction.amount,
         status=transaction.status,
         timestamp=transaction.timestamp,
+        signature=transaction.signature,
         tx_hash=transaction.tx_hash,
         block_id=transaction.block_id,
     )
-
 
 @router.get("/{tx_hash}", response_model=TransactionResponseDTO)
 async def get_transaction(
@@ -56,6 +63,7 @@ async def get_transaction(
         amount=transaction.amount,
         status=transaction.status,
         timestamp=transaction.timestamp,
+        signature=transaction.signature,
         tx_hash=transaction.tx_hash,
         block_id=transaction.block_id,
     )

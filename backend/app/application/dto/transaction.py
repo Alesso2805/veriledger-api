@@ -10,6 +10,7 @@ class TransactionCreateRequestDTO(BaseModel):
     sender_address: str
     receiver_address: str
     amount: float = Field(..., gt=0)
+    signature: str
 
 
 class TransactionResponseDTO(BaseModel):
@@ -19,5 +20,6 @@ class TransactionResponseDTO(BaseModel):
     amount: float
     status: TransactionStatus
     timestamp: datetime
+    signature: str
     tx_hash: Optional[str] = None
     block_id: Optional[str] = None

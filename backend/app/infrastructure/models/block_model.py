@@ -1,5 +1,6 @@
 import uuid
-from sqlalchemy import Column, String, Numeric, DateTime, ForeignKey, Enum as SAEnum
+from datetime import datetime
+from sqlalchemy import String, DateTime, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.domain.entities.transaction import TransactionStatus
@@ -10,9 +11,10 @@ class BlockModel(BaseModel):
     __tablename__ = "blocks"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    block_number: Mapped[int] = mapped_column(unique=True, index=True)
+    block_number: Mapped[int] = mapped_column(Integer, unique=True, index=True)
     previous_hash: Mapped[str] = mapped_column(String)
-    timestamp: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    nonce: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     block_hash: Mapped[str] = mapped_column(String, unique=True, index=True)
 
     transactions = relationship("TransactionModel", back_populates="block")

@@ -9,5 +9,6 @@ class BlockResponseDTO(BaseModel):
     block_number: int
     previous_hash: str
     timestamp: datetime
-    block_hash: Optional[str] = None
+    nonce: int
+    block_hash: str
     transaction_ids: list[str]

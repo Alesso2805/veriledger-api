@@ -8,6 +8,7 @@ from backend.app.infrastructure.database import get_db_session
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.security.sha256_hasher import SHA256HasherImpl
+from backend.app.infrastructure.consensus.pow_service import ProofOfWorkServiceImpl
 from backend.app.presentation.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/blocks", tags=["blocks"])
@@ -21,18 +22,12 @@ async def mine_block(
     block_repo = BlockRepositoryImpl(db)
     tx_repo = TransactionRepositoryImpl(db)
     hasher = SHA256HasherImpl()
+    consensus_service = ProofOfWorkServiceImpl(hasher)
 
-    use_case = MineBlockUseCase(block_repo, tx_repo, hasher)
+    use_case = MineBlockUseCase(block_repo, tx_repo, consensus_service)
 
     try:
         block = await use_case.execute()
-        return BlockResponseDTO(
-            id=block.id,
-            block_number=block.block_number,
-            previous_hash=block.previous_hash,
-            timestamp=block.timestamp,
-            block_hash=block.block_hash,
-            transaction_ids=block.transaction_ids,
-        )
+        return block
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

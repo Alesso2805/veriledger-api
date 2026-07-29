@@ -18,5 +18,6 @@ class Transaction:
     amount: float
     status: TransactionStatus
     timestamp: datetime
+    signature: str = ""
     tx_hash: Optional[str] = None
     block_id: Optional[str] = None

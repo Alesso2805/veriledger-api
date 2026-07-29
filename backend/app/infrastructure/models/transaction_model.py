@@ -18,6 +18,7 @@ class TransactionModel(BaseModel):
     amount: Mapped[float] = mapped_column(Numeric(18, 8))
     status: Mapped[TransactionStatus] = mapped_column(SAEnum(TransactionStatus), index=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    signature: Mapped[str] = mapped_column(String)
     tx_hash: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True, nullable=True)
     
     block_id: Mapped[Optional[str]] = mapped_column(ForeignKey("blocks.id"), nullable=True)

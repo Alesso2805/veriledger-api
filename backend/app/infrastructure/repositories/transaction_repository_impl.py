@@ -20,6 +20,7 @@ class TransactionRepositoryImpl(TransactionRepository):
             amount=transaction.amount,
             status=transaction.status,
             timestamp=transaction.timestamp,
+            signature=transaction.signature,
             tx_hash=transaction.tx_hash,
             block_id=transaction.block_id,
         )
@@ -68,6 +69,7 @@ class TransactionRepositoryImpl(TransactionRepository):
             amount=float(model.amount),
             status=model.status,
             timestamp=model.timestamp,
+            signature=model.signature,
             tx_hash=model.tx_hash,
             block_id=model.block_id,
         )
