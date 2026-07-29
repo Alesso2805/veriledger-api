@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from backend.app.core.config import settings
 from backend.app.core.logger import setup_logging
-from backend.app.presentation.api import auth_router, user_router
+from backend.app.presentation.api import auth_router, user_router, transaction_router, block_router
 
 logger = structlog.get_logger()
 
@@ -29,6 +29,8 @@ app = FastAPI(
 
 app.include_router(auth_router.router)
 app.include_router(user_router.router)
+app.include_router(transaction_router.router)
+app.include_router(block_router.router)
 
 
 class HealthCheckResponse(BaseModel):
