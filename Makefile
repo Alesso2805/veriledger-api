@@ -18,3 +18,9 @@ format:
 
 typecheck:
 	uv run mypy backend/app backend/tests
+
+migrate:
+	uv run alembic -c backend/alembic.ini upgrade head
+
+seed:
+	uv run python -m backend.app.infrastructure.seed
