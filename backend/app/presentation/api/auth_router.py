@@ -1,22 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.application.dto.user import LoginDTO, TokenDTO, UserResponseDTO
 from backend.app.application.use_cases.auth.login import LoginUseCase
 from backend.app.domain.entities.user import User
-from backend.app.infrastructure.database import get_db_session
 from backend.app.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
 from backend.app.infrastructure.security.jwt_service import JWTTokenService
 from backend.app.infrastructure.security.password_hasher import PasswordHasherImpl
 from backend.app.presentation.dependencies.auth import get_current_user
+from backend.app.presentation.dependencies.database import DbSession
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenDTO)
 async def login(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db_session)
+    db: DbSession, form_data: OAuth2PasswordRequestForm = Depends()
 ) -> TokenDTO:
     user_repo = UserRepositoryImpl(db)
     password_hasher = PasswordHasherImpl()

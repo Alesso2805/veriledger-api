@@ -4,6 +4,7 @@ from unittest.mock import create_autospec, AsyncMock, patch
 from datetime import datetime, timezone
 
 from backend.app.application.use_cases.ledger.mine_block import MineBlockUseCase
+from backend.app.domain.entities.node import Node
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
 from backend.app.domain.entities.block import Block
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
@@ -51,15 +52,19 @@ async def test_mine_block_success(mock_block_repo, mock_tx_repo, mock_consensus,
     last_block.block_hash = "last_hash"
     mock_block_repo.get_latest_block.return_value = last_block
     
-    with patch("asyncio.create_task") as mock_create_task:
-        result = await use_case.execute("miner1")
-        
-        assert result.block_number == 6
-        assert result.previous_hash == "last_hash"
-        assert result.nonce == 123
-        assert result.block_hash == "new_block_hash"
-        assert len(result.transaction_ids) == 2 # 1 coinbase + 1 pending
-        
-        mock_tx_repo.create.assert_called_once()
-        mock_block_repo.create.assert_called_once()
-        mock_create_task.assert_called_once() # Broadcasting triggered
+    mock_node_repo.get_all.return_value = [Node(id="1", url="http://peer", status="ACTIVE")]
+
+    result = await use_case.execute("miner1")
+
+    assert result.block_number == 6
+    assert result.previous_hash == "last_hash"
+    assert result.nonce == 123
+    assert result.block_hash == "new_block_hash"
+    assert len(result.transaction_ids) == 2  # 1 coinbase + 1 pending
+    mock_tx_repo.create.assert_called_once()
+    mock_block_repo.create.assert_called_once()
+
+    # The router asks peers to resolve after the response; execute only reads them while the session is open
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        await use_case.broadcast_block()
+    mock_post.assert_awaited_once_with("http://peer/nodes/resolve")

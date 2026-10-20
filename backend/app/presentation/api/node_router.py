@@ -1,22 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from backend.app.application.dto.node import NodeCreateRequestDTO, NodeResponseDTO
 from backend.app.application.use_cases.network.register_node import RegisterNodeUseCase
 from backend.app.application.use_cases.network.resolve_conflicts import ResolveConflictsUseCase
 from backend.app.domain.entities.user import User
-from backend.app.infrastructure.database import get_db_session
 from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.presentation.dependencies.auth import get_current_user
+from backend.app.presentation.dependencies.database import DbSession
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 
 @router.post("/register", response_model=NodeResponseDTO, status_code=status.HTTP_201_CREATED)
 async def register_node(
     request: NodeCreateRequestDTO,
-    db: AsyncSession = Depends(get_db_session),
+    db: DbSession,
     current_user: User = Depends(get_current_user),
 ) -> NodeResponseDTO:
     node_repo = NodeRepositoryImpl(db)
@@ -30,7 +29,7 @@ async def register_node(
 
 @router.get("", response_model=List[NodeResponseDTO])
 async def get_nodes(
-    db: AsyncSession = Depends(get_db_session),
+    db: DbSession,
     current_user: User = Depends(get_current_user),
 ) -> List[NodeResponseDTO]:
     node_repo = NodeRepositoryImpl(db)
@@ -39,7 +38,7 @@ async def get_nodes(
 
 @router.post("/resolve")
 async def resolve_conflicts(
-    db: AsyncSession = Depends(get_db_session),
+    db: DbSession,
     current_user: User = Depends(get_current_user),
 ):
     node_repo = NodeRepositoryImpl(db)

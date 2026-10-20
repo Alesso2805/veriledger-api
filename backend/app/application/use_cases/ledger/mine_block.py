@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from backend.app.application.dto.block import BlockResponseDTO
 from backend.app.domain.entities.block import Block
+from backend.app.domain.entities.node import Node
 from backend.app.domain.entities.transaction import TransactionStatus, Transaction
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
@@ -27,6 +28,7 @@ class MineBlockUseCase:
         self.consensus_service = consensus_service
         self.hasher = hasher
         self.node_repo = node_repo
+        self._peers: list[Node] = []
 
     async def execute(self, miner_address: str) -> BlockResponseDTO:
         # Get pending transactions
@@ -93,9 +95,9 @@ class MineBlockUseCase:
             tx.block_id = block.id
             await self.tx_repo.update(tx)
 
-        # Broadcast resolve signal
+        # Read the peers now: broadcast_block runs after the response, when this request's session is closed
         if self.node_repo:
-            asyncio.create_task(self._broadcast_block())
+            self._peers = await self.node_repo.get_all()
 
         return BlockResponseDTO(
             id=block.id,
@@ -107,8 +109,8 @@ class MineBlockUseCase:
             transaction_ids=block.transaction_ids,
         )
 
-    async def _broadcast_block(self):
-        nodes = await self.node_repo.get_all()
+    async def broadcast_block(self) -> None:
+        nodes = self._peers
         if not nodes:
             return
             

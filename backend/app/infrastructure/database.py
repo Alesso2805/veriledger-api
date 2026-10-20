@@ -17,5 +17,7 @@ Base = declarative_base()
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    # One transaction per request: if the endpoint raises, the commit is skipped and closing the session rolls back
     async with async_session_maker() as session:
         yield session
+        await session.commit()

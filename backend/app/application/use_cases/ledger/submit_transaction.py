@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timezone
 
 from backend.app.application.dto.transaction import TransactionCreateRequestDTO
+from backend.app.domain.entities.node import Node
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
@@ -24,6 +25,7 @@ class SubmitTransactionUseCase:
         self.hasher = hasher
         self.signature_service = signature_service
         self.node_repo = node_repo
+        self._peers: list[Node] = []
 
     async def execute(self, request: TransactionCreateRequestDTO) -> Transaction:
         # Check if transaction signature and contents generate a known hash to avoid infinite loops in gossip
@@ -73,15 +75,15 @@ class SubmitTransactionUseCase:
             
         temp_tx.tx_hash = tx_hash
         created_tx = await self.tx_repo.create(temp_tx)
-        
-        # Broadcast to peers
+
+        # Read the peers now: broadcast_transaction runs after the response, when this request's session is closed
         if self.node_repo:
-            asyncio.create_task(self._broadcast_transaction(request))
-            
+            self._peers = await self.node_repo.get_all()
+
         return created_tx
 
-    async def _broadcast_transaction(self, request: TransactionCreateRequestDTO):
-        nodes = await self.node_repo.get_all()
+    async def broadcast_transaction(self, request: TransactionCreateRequestDTO) -> None:
+        nodes = self._peers
         if not nodes:
             return
             
