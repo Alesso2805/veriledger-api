@@ -67,8 +67,8 @@ class BlockRepositoryImpl(BlockRepository):
         from sqlalchemy import delete
         from backend.app.infrastructure.models.transaction_model import TransactionModel
         from backend.app.domain.entities.transaction import TransactionStatus
-        from dateutil.parser import isoparse
-        
+        from datetime import datetime
+
         # 1. Delete all blocks (this will set block_id to NULL for txs if no cascade, so we delete txs too)
         await self._session.execute(delete(TransactionModel).where(TransactionModel.status == TransactionStatus.CONFIRMED))
         await self._session.execute(delete(BlockModel))
@@ -81,7 +81,7 @@ class BlockRepositoryImpl(BlockRepository):
                 id=block_data["id"],
                 block_number=block_data["block_number"],
                 previous_hash=block_data["previous_hash"],
-                timestamp=isoparse(block_data["timestamp"]),
+                timestamp=datetime.fromisoformat(block_data["timestamp"]),
                 nonce=block_data["nonce"],
                 block_hash=block_data["block_hash"],
             )
@@ -95,7 +95,7 @@ class BlockRepositoryImpl(BlockRepository):
                     amount=tx_data["amount"],
                     fee=tx_data["fee"],
                     status=TransactionStatus(tx_data["status"]),
-                    timestamp=isoparse(tx_data["timestamp"]),
+                    timestamp=datetime.fromisoformat(tx_data["timestamp"]),
                     signature=tx_data["signature"],
                     tx_hash=tx_data["tx_hash"],
                     block_id=block.id,
