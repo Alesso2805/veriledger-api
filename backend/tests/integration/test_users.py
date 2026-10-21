@@ -37,7 +37,7 @@ async def test_created_user_is_saved_and_can_sign_in(
     headers = await admin_headers(async_client, postgres)
 
     response = await async_client.post("/users", json=NEW_USER, headers=headers)
-    assert response.status_code == 201
+    assert response.status_code == 200  # CI canary: deliberately wrong, must fail
 
     # A new session sees only what the request committed
     async with postgres() as session:
