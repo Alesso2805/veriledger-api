@@ -117,18 +117,18 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | GET | `/wallets/{address}/balance` | Public | — | `{address, balance}` |
 | GET | `/wallets/{address}/nonce` | Public | — | The sender's next nonce: one more than the last accepted, 1 for a new address |
 | POST | `/transactions` | JWT | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings. A byte-identical replay answers 200 with the stored transaction; another body with a used or skipped `nonce` answers 409 |
-| GET | `/transactions/{tx_hash}` | JWT | Any | Lookup by hash (404 if unknown), with `block_number` and `block_hash` (null while pending) |
-| GET | `/transactions?status=PENDING` | JWT | Any | What waits for the next block, newest first (`skip`, `limit` up to 100); only `PENDING` for now |
+| GET | `/transactions/{tx_hash}` | Public | — | Lookup by hash (404 if unknown), with `block_number` and `block_hash` (null while pending) |
+| GET | `/transactions?status=PENDING` | Public | — | What waits for the next block, newest first (`skip`, `limit` up to 100); only `PENDING` for now |
 | GET | `/wallets/{address}/transactions` | Public | — | An address's activity, paginated. Planned (VLA-34) |
-| GET | `/blocks` | JWT | Any | Paginated blocks, newest first (`skip`, `limit`), each with its `transaction_hashes` |
-| GET | `/blocks/full` | JWT; peer token in VLA-19 | Any | Blocks with their transactions, payloads included, for peers |
-| GET | `/blocks/{block_hash}` | JWT | Any | One block with its transactions (404 if unknown) |
+| GET | `/blocks` | Public | — | Paginated blocks, newest first (`skip`, `limit` up to 100), each with its `transaction_hashes` |
+| GET | `/blocks/full` | Public | — | Blocks with their transactions, payloads included, for peers (`skip`, `limit` up to 100) |
+| GET | `/blocks/{block_hash}` | Public | — | One block with its transactions (404 if unknown) |
 | POST | `/blocks/mine` | JWT | trader, admin | Mine the mempool into a block |
 | POST | `/nodes/register` | JWT | admin | Add a peer URL (201; 400 if duplicate) |
-| GET | `/nodes` | JWT | Any | List peers |
+| GET | `/nodes` | Public | — | List peers |
 | POST | `/nodes/resolve` | JWT; peer token in VLA-19 | admin | Adopt the longest valid chain among peers |
 
-**Public reads (ADR-0006, VLA-36).** From VLA-36 the reads `GET /blocks…`, `GET /transactions…` and `GET /nodes` need no token; the table shows the state before that story. Writes always need one.
+**Public reads (ADR-0006, VLA-36).** Blocks, transactions and peers are read without a token; every write needs one, with the role of › Permissions by role. A public page holds at most 100 items.
 
 **Errors.** Validation and business errors answer 400 with `{"detail": "<message>"}`; missing or invalid tokens 401; a role without permission 403; unknown resources 404; conflicts (duplicate nonce, concurrent mining) 409 from VLA-16 and VLA-17.
 
@@ -175,7 +175,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 
 **Permissions by role (target, VLA-19).** Each endpoint declares its required role in the router through `RequireRole`; this table is its specification.
 
-A demo account (ADR-0006) is a `trader` for 24 hours. Without an account, a visitor can read blocks, transactions and peers once VLA-36 lands.
+A demo account (ADR-0006) is a `trader` for 24 hours. Without an account, a visitor can read blocks, transactions and peers.
 
 | Permission | viewer | trader | admin |
 | --- | :-: | :-: | :-: |
