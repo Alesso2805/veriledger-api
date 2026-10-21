@@ -33,7 +33,7 @@ Option 3.
 
 - Keys sorted by code point; no whitespace; `payload` omitted when absent; strings JSON-escaped; the whole message UTF-8 encoded before signing.
 - `amount` and `fee` are strings with exactly 8 decimals and no leading zeros (the precision of the `numeric(18, 8)` columns), so neither side formats a float and each amount has one spelling. The body of `POST /transactions` carries those same strings, so the API rebuilds the message from what the client signed (decided with VLA-15).
-- `nonce` is an integer, one more than the sender's last accepted nonce; `GET /wallets/{address}/nonce` returns the next one. A reused or skipped nonce answers 409 (VLA-16).
+- `nonce` is an integer, one more than the sender's last accepted nonce; `GET /wallets/{address}/nonce` returns the next one. A reused or skipped nonce answers 409 (VLA-16). It runs from 1 to 2^53 − 1, the largest integer JavaScript holds exactly, so both sides write it alike; a unique (`sender_address`, `nonce`) constraint stops two requests racing for one nonce.
 - One function per repository builds the message: `build_signed_message` in the API, `buildSignedMessage` in the webapp's `src/lib/signing.ts`.
 - `docs/signing-vectors.json` in this repository holds the vectors (private key, fields, message, signature). The webapp copies the file in its tests; a change to the file is a change to this ADR.
 - The transaction hash covers the signed fields plus `signature` (VLA-16), so two different signatures are two transactions and the same signed body is the same transaction.
