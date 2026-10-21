@@ -4,20 +4,12 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from backend.tests.integration.conftest import VECTORS, fund
+from backend.tests.integration.conftest import VECTORS, fund, submit
 
 pytestmark = pytest.mark.asyncio
 
 TRANSFER = next(vector for vector in VECTORS if vector["name"] == "transfer")
 NOTARIZATION = next(vector for vector in VECTORS if vector["name"] == "notarization")
-
-
-async def submit(client: AsyncClient, headers: dict[str, str], vector: dict[str, Any]) -> str:
-    body = {**vector["fields"], "signature": vector["signature"]}
-    response = await client.post("/transactions", json=body, headers=headers)
-    assert response.status_code == 201
-    tx_hash: str = response.json()["tx_hash"]
-    return tx_hash
 
 
 async def mine(client: AsyncClient, headers: dict[str, str]) -> dict[str, Any]:

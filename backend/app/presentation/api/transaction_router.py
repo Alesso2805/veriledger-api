@@ -1,7 +1,14 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from typing import Literal
 
-from backend.app.application.dto.transaction import TransactionCreateRequestDTO, TransactionResponseDTO
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+
+from backend.app.application.dto.transaction import (
+    PaginatedTransactionResponseDTO,
+    TransactionCreateRequestDTO,
+    TransactionResponseDTO,
+)
 from backend.app.application.use_cases.ledger.get_transaction import GetTransactionByHashUseCase
+from backend.app.application.use_cases.ledger.list_pending_transactions import ListPendingTransactionsUseCase
 from backend.app.application.use_cases.ledger.submit_transaction import SubmitTransactionUseCase
 from backend.app.domain.entities.user import User
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
@@ -38,6 +45,19 @@ async def submit_transaction(
     background_tasks.add_task(use_case.broadcast_transaction, request)
 
     return TransactionResponseDTO.from_entity(transaction)
+
+
+@router.get("", response_model=PaginatedTransactionResponseDTO)
+async def list_transactions(
+    db: DbSession,
+    # Only the mempool for now: a confirmed transaction would also need its block, which this list does not read
+    tx_status: Literal["PENDING"] = Query("PENDING", alias="status"),
+    skip: int = Query(0, ge=0),
+    # ADR-0006 caps pages at 100 for reads that become public with VLA-36
+    limit: int = Query(100, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+) -> PaginatedTransactionResponseDTO:
+    return await ListPendingTransactionsUseCase(TransactionRepositoryImpl(db)).execute(skip=skip, limit=limit)
 
 
 @router.get("/{tx_hash}", response_model=TransactionResponseDTO)

@@ -27,6 +27,7 @@ ACCESS: dict[str, frozenset[UserRole] | None] = {
     "POST /wallets/generate": None,
     "GET /wallets/{address}/balance": None,
     "POST /transactions": ANY_ROLE,
+    "GET /transactions": ANY_ROLE,
     "GET /transactions/{tx_hash}": ANY_ROLE,
     "GET /blocks": ANY_ROLE,
     "GET /blocks/full": ANY_ROLE,
