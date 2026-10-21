@@ -17,7 +17,10 @@ WRITES = [
 
 
 async def test_blocks_transactions_and_peers_are_read_without_a_token(
-    async_client: AsyncClient, postgres: async_sessionmaker[AsyncSession], admin_headers: dict[str, str]
+    async_client: AsyncClient,
+    postgres: async_sessionmaker[AsyncSession],
+    admin_headers: dict[str, str],
+    private_peers: None,
 ) -> None:
     # Writes with the admin's token: a mined transfer, a pending one and a peer
     await fund(async_client, admin_headers, TRANSFER["fields"]["sender_address"])

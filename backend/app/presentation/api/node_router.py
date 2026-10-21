@@ -5,6 +5,7 @@ from backend.app.application.use_cases.network.register_node import RegisterNode
 from backend.app.application.use_cases.network.resolve_conflicts import ResolveConflictsUseCase
 from backend.app.domain.entities.user import User, UserRole
 from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
+from backend.app.infrastructure.peers.resolving_peer_url_policy import ResolvingPeerUrlPolicy
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.presentation.dependencies.auth import RequireRole, RequireRoleOrPeer
@@ -20,7 +21,7 @@ async def register_node(
     current_user: User = Depends(RequireRole([UserRole.ADMIN])),
 ) -> NodeResponseDTO:
     node_repo = NodeRepositoryImpl(db)
-    use_case = RegisterNodeUseCase(node_repo)
+    use_case = RegisterNodeUseCase(node_repo, ResolvingPeerUrlPolicy())
 
     try:
         node = await use_case.execute(request)

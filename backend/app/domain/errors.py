@@ -3,3 +3,7 @@ class NonceConflictError(Exception):
 
     Not a ValueError, so that no handler of ValueError turns it into a 400.
     """
+
+
+class UnsafePeerUrlError(ValueError):
+    """A peer URL this node must not call: not http(s), or not a public address (400, SPEC › Peer URLs)."""

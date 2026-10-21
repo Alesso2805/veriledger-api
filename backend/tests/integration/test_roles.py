@@ -24,6 +24,7 @@ async def test_each_role_mines_and_manages_peers_as_the_spec_says(
     async_client: AsyncClient,
     postgres: async_sessionmaker[AsyncSession],
     admin_headers: dict[str, str],
+    private_peers: None,
     role: str,
     expected: tuple[int, int, int],
 ) -> None:
