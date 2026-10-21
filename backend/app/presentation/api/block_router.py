@@ -53,7 +53,8 @@ async def get_blocks(
 
     return PaginatedBlockResponseDTO(
         items=items,
-        total=len(items),  # Simplified total for now
+        # Counts this page, not the chain; VLA-20 returns the real row count
+        total=len(items),
         page=skip // limit + 1 if limit > 0 else 1,
         size=limit,
     )
