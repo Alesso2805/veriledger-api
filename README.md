@@ -36,6 +36,7 @@ docker compose up
 
 - The API answers on `http://127.0.0.1:8000` (`API_PORT`), and PostgreSQL 16 on `127.0.0.1:5433` (`POSTGRES_HOST_PORT`).
 - `DEMO_MODE`, `MINING_DIFFICULTY`, `PEER_TOKEN` and the demo limits come from the shell or `.env` (see `.env.example`).
+- The migrate service also creates the admin of `ADMIN_EMAIL` and `ADMIN_PASSWORD`, which default to `admin@veriledger.com` / `adminpassword123` in development.
 - Production runs the published image `ghcr.io/alesso2805/veriledger-api` with `deploy/docker-compose.prod.yml` and the secrets of `deploy/.env` (copy `deploy/.env.example`).
 
 ## Setup & Running Locally
