@@ -22,6 +22,10 @@ class BlockRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_by_ids(self, block_ids: list[str]) -> list[Block]:
+        pass
+
+    @abstractmethod
     async def count(self) -> int:
         pass
 

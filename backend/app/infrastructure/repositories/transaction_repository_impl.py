@@ -1,4 +1,6 @@
-from sqlalchemy import desc, func, select
+from typing import Any
+
+from sqlalchemy import desc, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -90,6 +92,26 @@ class TransactionRepositoryImpl(TransactionRepository):
             model.block_id = transaction.block_id
             await self._session.flush()
         return transaction
+
+    async def list_by_address(self, address: str, skip: int, limit: int) -> list[Transaction]:
+        # Sent or received, newest first; the id breaks ties so that consecutive pages never overlap
+        stmt = (
+            select(TransactionModel)
+            .where(self._touches(address))
+            .order_by(desc(TransactionModel.timestamp), desc(TransactionModel.id))
+            .offset(skip)
+            .limit(limit)
+        )
+        return [self._model_to_entity(m) for m in (await self._session.execute(stmt)).scalars().all()]
+
+    async def count_by_address(self, address: str) -> int:
+        stmt = select(func.count()).select_from(TransactionModel).where(self._touches(address))
+        return int((await self._session.execute(stmt)).scalar_one())
+
+    @staticmethod
+    def _touches(address: str) -> Any:
+        # A notarization sends to its own sender, and OR still counts its row once
+        return or_(TransactionModel.sender_address == address, TransactionModel.receiver_address == address)
 
     async def get_last_nonce(self, address: str) -> int | None:
         stmt = select(func.max(TransactionModel.nonce)).where(TransactionModel.sender_address == address)

@@ -37,6 +37,14 @@ class TransactionRepository(ABC):
         pass
 
     @abstractmethod
+    async def list_by_address(self, address: str, skip: int, limit: int) -> list[Transaction]:
+        pass
+
+    @abstractmethod
+    async def count_by_address(self, address: str) -> int:
+        pass
+
+    @abstractmethod
     async def get_last_nonce(self, address: str) -> int | None:
         pass
 

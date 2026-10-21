@@ -119,7 +119,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | POST | `/transactions` | JWT | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings. A byte-identical replay answers 200 with the stored transaction; another body with a used or skipped `nonce` answers 409 |
 | GET | `/transactions/{tx_hash}` | Public | — | Lookup by hash (404 if unknown), with `block_number` and `block_hash` (null while pending) |
 | GET | `/transactions?status=PENDING` | Public | — | What waits for the next block, newest first (`skip`, `limit` up to 100); only `PENDING` for now |
-| GET | `/wallets/{address}/transactions` | Public | — | An address's activity, paginated. Planned (VLA-34) |
+| GET | `/wallets/{address}/transactions` | Public | — | What an address sent or received, newest first (`skip`, `limit` up to 100), each with its status, `tx_hash` and block |
 | GET | `/blocks` | Public | — | Paginated blocks, newest first (`skip`, `limit` up to 100), each with its `transaction_hashes` |
 | GET | `/blocks/full` | Public | — | Blocks with their transactions, payloads included, for peers (`skip`, `limit` up to 100) |
 | GET | `/blocks/{block_hash}` | Public | — | One block with its transactions (404 if unknown) |

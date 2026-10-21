@@ -54,6 +54,10 @@ class BlockRepositoryImpl(BlockRepository):
         model = (await self._session.execute(stmt)).scalar_one_or_none()
         return self._model_to_entity(model) if model else None
 
+    async def get_by_ids(self, block_ids: list[str]) -> list[Block]:
+        stmt = select(BlockModel).where(BlockModel.id.in_(block_ids)).options(selectinload(BlockModel.transactions))
+        return [self._model_to_entity(m) for m in (await self._session.execute(stmt)).scalars().all()]
+
     async def count(self) -> int:
         return int((await self._session.execute(select(func.count()).select_from(BlockModel))).scalar_one())
 

@@ -1,9 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
+from backend.app.application.dto.transaction import PaginatedTransactionResponseDTO
 from backend.app.application.dto.wallet import BalanceResponseDTO, NonceResponseDTO, WalletKeyPairDTO
 from backend.app.application.use_cases.wallet.generate_wallet import GenerateWalletUseCase
 from backend.app.application.use_cases.wallet.get_balance import GetBalanceUseCase
 from backend.app.application.use_cases.wallet.get_next_nonce import GetNextNonceUseCase
+from backend.app.application.use_cases.wallet.list_address_transactions import ListAddressTransactionsUseCase
+from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.security.ed25519_service import Ed25519ServiceImpl
 from backend.app.presentation.dependencies.database import DbSession
@@ -41,3 +44,15 @@ async def get_next_nonce(
 ) -> NonceResponseDTO:
     nonce = await GetNextNonceUseCase(TransactionRepositoryImpl(db)).execute(address)
     return NonceResponseDTO(address=address, nonce=nonce)
+
+
+@router.get("/{address}/transactions", response_model=PaginatedTransactionResponseDTO)
+async def list_address_transactions(
+    address: str,
+    db: DbSession,
+    skip: int = Query(0, ge=0),
+    # ADR-0006 caps the pages of public reads at 100
+    limit: int = Query(100, ge=1, le=100),
+) -> PaginatedTransactionResponseDTO:
+    use_case = ListAddressTransactionsUseCase(TransactionRepositoryImpl(db), BlockRepositoryImpl(db))
+    return await use_case.execute(address, skip=skip, limit=limit)
