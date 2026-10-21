@@ -33,7 +33,7 @@ Status: **Built** (exists on `main`, see the audit for its defects), **Planned**
 | --- | --- | --- | --- |
 | Identity | Login | `POST /auth/login` with the OAuth2 password form; JWT HS256, 30 min | Built (VLA-02) |
 | Identity | Users and roles | Roles `admin`, `trader`, `viewer`; only admin creates users; bcrypt hashes; soft delete column | Built (VLA-02) |
-| Identity | Demo accounts | One click makes a 24-hour `trader` account, with no email or password (ADR-0006) | Built (VLA-35); its limits come with VLA-35's second part |
+| Identity | Demo accounts | One click makes a 24-hour `trader` account, with no email or password (ADR-0006) | Built (VLA-35), with its limits |
 | Identity | Admin seed | `make seed` creates the admin once | Built (VLA-02); credentials from the environment in VLA-24 |
 | Wallets | Key pair | `POST /wallets/generate` returns an Ed25519 pair in hex | Built (VLA-04); development only in VLA-21, the webapp generates keys itself (VLW-16) |
 | Wallets | Balance | `GET /wallets/{address}/balance`: confirmed received − (confirmed and pending sent + fees) | Built (VLA-04) |
@@ -120,7 +120,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | --- | --- | --- | --- | --- |
 | GET | `/health` | Public | — | Liveness, and `demo_mode`: whether `POST /auth/demo` exists (VLA-35); database readiness in VLA-26 |
 | POST | `/auth/login` | Public | — | OAuth2 password form → `{access_token, token_type}` |
-| POST | `/auth/demo` | Public, only with `DEMO_MODE` | — | Creates a 24-hour `trader` account named `Guest XXXX` and returns its token, 201 (› Demo accounts); 404 without `DEMO_MODE`. Its limits (429) come with VLA-35's second part |
+| POST | `/auth/demo` | Public, only with `DEMO_MODE` | — | Creates a 24-hour `trader` account named `Guest XXXX` and returns its token, 201 (› Demo accounts); 404 without `DEMO_MODE`; 429 past › Demo limits |
 | GET | `/auth/me` | JWT | Any | The current user: `email` (null for a demo account), `display_name` (the email, or `Guest XXXX`), `role`, `expires_at` (set only for a demo account) |
 | POST | `/users` | JWT | admin | Create a user |
 | POST | `/wallets/generate` | Public | — | Development only (VLA-21) |
@@ -133,14 +133,24 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | GET | `/blocks` | Public | — | Paginated blocks, newest first (`skip`, `limit` up to 100), each with its `transaction_hashes` |
 | GET | `/blocks/full` | Public | — | Blocks with their transactions, payloads included, for peers (`skip`, `limit` up to 100) |
 | GET | `/blocks/{block_hash}` | Public | — | One block with its transactions (404 if unknown) |
-| POST | `/blocks/mine` | JWT | trader, admin | Mine the mempool into a block; 409 if another request mined that height first (› Request flow (mine a block)) |
+| POST | `/blocks/mine` | JWT | trader, admin | Mine the mempool into a block; 409 if another request mined that height first (› Request flow (mine a block)); 429 for a demo account past its hourly limit (› Demo limits) |
 | POST | `/nodes/register` | JWT | admin | Add a peer URL (201; 400 if duplicate, or if › Peer URLs refuses it, with the reason) |
 | GET | `/nodes` | Public | — | List peers |
 | POST | `/nodes/resolve` | JWT or peer token | admin | Adopt the longest valid chain among peers |
 
 **Public reads (ADR-0006, VLA-36).** Blocks, transactions and peers are read without a token; every write needs one, with the role of › Permissions by role. A public page holds at most 100 items.
 
-**Demo accounts (VLA-35, ADR-0006).** With `DEMO_MODE=true`, `POST /auth/demo` creates a `trader` with no email or password, named `Guest XXXX` after the last four hex digits of its id, which expires 24 hours later. Its JWT carries `sub`, `role`, `exp` at the account's `expires_at`, and `demo: true`, so the webapp can tell an ended demo from an expired session even after a reload; a normal account's token has no `demo` claim. After `expires_at`, every request with the token answers 401 `Could not validate credentials`, like any expired token, and the account's own date is checked as well as the token's. A demo account cannot sign in with `/auth/login`. `make purge-demo-accounts` (`backend/app/cli/purge_demo_accounts.py`), run on a schedule in a demo deployment, deletes the expired accounts; blocks and transactions refer to addresses, not to users, so what a demo recorded stays on the chain. The limits on demo accounts and their mining come with VLA-35's second part.
+**Demo accounts (VLA-35, ADR-0006).** With `DEMO_MODE=true`, `POST /auth/demo` creates a `trader` with no email or password, named `Guest XXXX` after the last four hex digits of its id, which expires 24 hours later. Its JWT carries `sub`, `role`, `exp` at the account's `expires_at`, and `demo: true`, so the webapp can tell an ended demo from an expired session even after a reload; a normal account's token has no `demo` claim. After `expires_at`, every request with the token answers 401 `Could not validate credentials`, like any expired token, and the account's own date is checked as well as the token's. A demo account cannot sign in with `/auth/login`. `make purge-demo-accounts` (`backend/app/cli/purge_demo_accounts.py`), run on a schedule in a demo deployment, deletes the expired accounts; blocks and transactions refer to addresses, not to users, so what a demo recorded stays on the chain.
+
+**Demo limits (VLA-35, ADR-0006).** Each answers 429 with `Retry-After` in seconds, and 0 turns it off, as the webapp's end-to-end CI does:
+
+| Setting | Default | Counts | `detail` |
+| --- | --- | --- | --- |
+| `DEMO_ACCOUNTS_PER_IP_PER_HOUR` | 5 | Demo accounts made from one client address in the last hour | `Too many demo accounts from your network in the last hour; try again later` |
+| `DEMO_MAX_ACTIVE_ACCOUNTS` | 500 | Demo accounts not yet expired; `Retry-After` is when the oldest expires | `The demo is full right now; try again later` |
+| `DEMO_MINES_PER_HOUR` | 10 | A demo account's mining requests in the last hour; normal accounts have no limit | `A demo account can mine N blocks per hour; try again later`, with N the setting |
+
+The active count is read from the database. The other two are counted by a sliding window in the API process's memory (`infrastructure/limits/`), which suffices with one API process (ADR-0005) and starts again after a restart. Behind Caddy, the client address is the visitor's only when uvicorn runs with `--proxy-headers` and trusts Caddy's address (VLA-27).
 
 **Errors.** Validation and business errors answer 400 with `{"detail": "<message>"}`; missing or invalid tokens 401; a role without permission 403; unknown resources 404; conflicts (duplicate nonce, concurrent mining) 409 from VLA-16 and VLA-17.
 
@@ -181,6 +191,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | Security | Peer URLs cannot point the server at internal addresses | One test per refused range and a name with one private answer (`test_resolving_peer_url_policy.py`); refused and not stored at the endpoint (`test_peer_urls.py`); skipped before a call (VLA-19) |
 | Security | Only a node holding the peer token submits or asks for a resolve without a user, and the token opens no other route | `test_peer_token.py`, AR-08, and two running nodes in `test_two_nodes.py` (VLA-19) |
 | Security | Login and transaction submission are rate limited | 429 tests (VLA-29) |
+| Security | The public demo cannot be flooded with accounts or mining | `test_demo_limits.py`: each limit's 429 and `Retry-After`, another address not held back, 0 turns a limit off (VLA-35) |
 | Reproducibility | The image installs exactly `uv.lock` and the app imports with runtime dependencies only | CI builds the image and imports the app (VLA-11, VLA-22) |
 | Deployment | `docker compose up` applies migrations before the API starts | Startup from an empty database in CI (VLA-23) |
 | Observability | JSON logs in production with a request id; `/health` reports the database | Log and health tests (VLA-26) |
