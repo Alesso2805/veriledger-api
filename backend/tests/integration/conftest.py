@@ -11,6 +11,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
+from backend.app.core.config import settings
 from backend.app.domain.entities.user import UserRole
 from backend.app.infrastructure import database
 from backend.app.infrastructure.database import Base
@@ -40,6 +41,12 @@ async def submit(client: AsyncClient, headers: dict[str, str], vector: dict[str,
     assert response.status_code == 201
     tx_hash: str = response.json()["tx_hash"]
     return tx_hash
+
+
+@pytest.fixture
+def private_peers(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Peers on reserved names like peer.example, which only ALLOW_PRIVATE_PEERS lets through, as in Compose
+    monkeypatch.setattr(settings, "allow_private_peers", True)
 
 
 @pytest_asyncio.fixture

@@ -5,6 +5,13 @@ import pytest
 
 from backend.app.core.config import settings
 from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
+from backend.app.infrastructure.peers.resolving_peer_url_policy import ResolvingPeerUrlPolicy
+
+
+@pytest.fixture(autouse=True)
+def private_peers(monkeypatch: pytest.MonkeyPatch) -> None:
+    # These peers are bare names like http://peer, which only ALLOW_PRIVATE_PEERS lets through
+    monkeypatch.setattr(settings, "allow_private_peers", True)
 
 
 def peer_with_chain(blocks: int, seen: list[httpx.Request]) -> httpx.MockTransport:
@@ -111,3 +118,23 @@ async def test_every_call_carries_the_peer_token_when_there_is_one(
     await every_call(HttpxPeerClient(transport=recording(seen), peer_token=given))
 
     assert [request.headers.get("X-Peer-Token") for request in seen] == [sent] * 3
+
+
+@pytest.mark.asyncio
+async def test_a_peer_that_is_not_a_public_address_is_never_called() -> None:
+    async def resolve(host: str) -> list[str]:
+        return {"public": ["93.184.215.14"], "internal": ["10.0.0.1"]}[host]
+
+    seen: list[httpx.Request] = []
+    policy = ResolvingPeerUrlPolicy(allow_private=False, resolve=resolve)
+    client = HttpxPeerClient(transport=recording(seen), url_policy=policy)
+
+    await client.send_transaction(["http://internal", "http://public"], {"nonce": 1})
+    await client.request_resolve(["http://internal", "http://public"])
+    chain = await client.fetch_chain("http://internal")
+
+    assert chain is None
+    assert [f"{request.url.host}{request.url.path}" for request in seen] == [
+        "public/transactions",
+        "public/nodes/resolve",
+    ]

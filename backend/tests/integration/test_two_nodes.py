@@ -98,6 +98,7 @@ async def nodes(tmp_path: Path) -> AsyncGenerator[tuple[str, str], None]:
                 "DATABASE_URL": await create_database(name),
                 "PEER_TOKEN": PEER_TOKEN,
                 "APP_DEBUG": "false",
+                "ALLOW_PRIVATE_PEERS": "true",
             }
             port = free_port()
             log = tmp_path / f"{name}.log"

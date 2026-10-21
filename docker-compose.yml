@@ -16,6 +16,8 @@ services:
       - DATABASE_URL=postgresql+asyncpg://veriledger:veriledger_pass@postgres:5432/veriledger
       - APP_ENV=development
       - APP_DEBUG=true
+      # Peers on this machine or the Compose network (VLA-19); never in production
+      - ALLOW_PRIVATE_PEERS=true
     depends_on:
       postgres:
         condition: service_healthy

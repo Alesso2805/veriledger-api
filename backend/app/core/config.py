@@ -12,6 +12,8 @@ class Settings(BaseSettings):
 
     # Shared by the nodes of one network (VLA-19); unset or empty, no call is taken for a peer's
     peer_token: str | None = None
+    # Lets peers sit on loopback, private and link-local addresses: development and private networks only
+    allow_private_peers: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

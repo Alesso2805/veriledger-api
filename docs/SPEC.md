@@ -42,7 +42,7 @@ Status: **Built** (exists on `main`, see the audit for its defects), **Planned**
 | Mining | Proof of Work | All pending transactions plus a coinbase go into one block; SHA-256 with 4 leading hex zeros | Built (VLA-05) |
 | Mining | Reward and fees | Coinbase from `SYSTEM` of 50 + the block's fees to the miner | Built (VLA-06) |
 | Mining | Atomic and non-blocking | One DB transaction per block; PoW off the event loop; difficulty and reward in settings | Planned (VLA-17) |
-| Network | Peers | Register, list; new transactions and blocks are broadcast to peers, which take the shared peer token in place of a user | Built (VLA-07); the peer token since VLA-19 |
+| Network | Peers | Register, list; new transactions and blocks are broadcast to peers, which take the shared peer token in place of a user | Built (VLA-07); the peer token and safe peer URLs since VLA-19 |
 | Network | Consensus | `POST /nodes/resolve` adopts the longest valid chain among peers | Built (VLA-07) with a structural check only; full validation in VLA-18 |
 | Operations | Health | `GET /health` | Built (VLA-01); database check in VLA-26 |
 | Operations | Deployment | One server, Docker Compose, Caddy, HTTPS | Planned (VLA-22, VLA-23, VLA-27) |
@@ -68,6 +68,8 @@ The admin seed lives in `backend/app/cli/seed.py`. Like the routers, it is a com
 **Peer calls.** Use cases call peers through the `PeerClient` port (`domain/ports/services/peer_client.py`), implemented with httpx in `infrastructure/peers/`. They offer new transactions (`POST /transactions`), ask peers to resolve after a new block (`POST /nodes/resolve`), and read a peer's whole chain, page by page, from `GET /blocks/full` to resolve conflicts. A peer's chain is as long as what was fetched, never the `total` it claims, and it is compared with our whole chain, not one page.
 
 **Peer token (VLA-19).** The nodes of one network share `PEER_TOKEN`. Every peer call sends it in `X-Peer-Token`, and `POST /transactions` and `POST /nodes/resolve` accept it in place of a user, compared in constant time; no other route takes it. It names a node, not a person: a transaction a peer offers is checked against its signature, balance and nonce like any other. Unset or empty, the header is ignored and those routes need a user. Every registered peer receives the token, so an admin registers only nodes of the same network.
+
+**Peer URLs (VLA-19).** The `PeerUrlPolicy` port (`ResolvingPeerUrlPolicy` in `infrastructure/peers/`) decides which URLs this node may call. A peer URL is `http` or `https` with a host, and every address its host resolves to is public: loopback, private, link-local, shared (`100.64.0.0/10`), reserved and multicast addresses are refused, and `::ffff:a.b.c.d` counts as `a.b.c.d`. This keeps an admin, or whoever holds an admin's token, from pointing the server at its own network or at a cloud's metadata service. Registration checks it and answers 400 with the reason. Every call checks it again and skips a peer that fails, since a host can change its answer after it was registered. httpx does not follow redirects. A host is resolved once more when httpx connects, so one that changes its answer between the check and the call (DNS rebinding) is not stopped. `ALLOW_PRIVATE_PEERS=true` lifts the address rule, not the scheme rule, for development and private networks; Compose sets it, and `.env.example` leaves it false.
 
 **Adopting a chain.** Each adopted transaction keeps its payload and nonce. A pending transaction that the new chain already holds, or whose nonce it used, leaves the mempool, since it can no longer be mined.
 
@@ -128,7 +130,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | GET | `/blocks/full` | Public | — | Blocks with their transactions, payloads included, for peers (`skip`, `limit` up to 100) |
 | GET | `/blocks/{block_hash}` | Public | — | One block with its transactions (404 if unknown) |
 | POST | `/blocks/mine` | JWT | trader, admin | Mine the mempool into a block |
-| POST | `/nodes/register` | JWT | admin | Add a peer URL (201; 400 if duplicate) |
+| POST | `/nodes/register` | JWT | admin | Add a peer URL (201; 400 if duplicate, or if › Peer URLs refuses it, with the reason) |
 | GET | `/nodes` | Public | — | List peers |
 | POST | `/nodes/resolve` | JWT or peer token | admin | Adopt the longest valid chain among peers |
 
@@ -170,7 +172,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | Availability | Mining does not block other requests | `/health` answers while a block is mined (VLA-17) |
 | Security | Production refuses a missing, default or short `SECRET_KEY`; debug off by default; CORS origins from configuration | Settings tests (VLA-21) |
 | Security | The server never generates or receives private keys in production | `/wallets/generate` answers 404 in production (VLA-21); webapp test (VLW-16) |
-| Security | Peer URLs cannot point the server at internal addresses | SSRF tests with loopback and private ranges (VLA-19) |
+| Security | Peer URLs cannot point the server at internal addresses | One test per refused range and a name with one private answer (`test_resolving_peer_url_policy.py`); refused and not stored at the endpoint (`test_peer_urls.py`); skipped before a call (VLA-19) |
 | Security | Only a node holding the peer token submits or asks for a resolve without a user, and the token opens no other route | `test_peer_token.py`, AR-08, and two running nodes in `test_two_nodes.py` (VLA-19) |
 | Security | Login and transaction submission are rate limited | 429 tests (VLA-29) |
 | Reproducibility | The image installs exactly `uv.lock` and the app imports with runtime dependencies only | CI builds the image and imports the app (VLA-11, VLA-22) |
