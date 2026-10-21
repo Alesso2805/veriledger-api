@@ -21,4 +21,5 @@ class Transaction:
     signature: str = ""
     tx_hash: str | None = None
     payload: str | None = None
+    nonce: int | None = None
     block_id: str | None = None

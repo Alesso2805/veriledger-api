@@ -1,7 +1,9 @@
 from sqlalchemy import desc, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
+from backend.app.domain.errors import NonceConflictError
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.infrastructure.models.transaction_model import TransactionModel
 
@@ -22,10 +24,17 @@ class TransactionRepositoryImpl(TransactionRepository):
             signature=transaction.signature,
             tx_hash=transaction.tx_hash,
             payload=transaction.payload,
+            nonce=transaction.nonce,
             block_id=transaction.block_id,
         )
         self._session.add(model)
-        await self._session.flush()
+        try:
+            await self._session.flush()
+        except IntegrityError as error:
+            # Two requests with the same nonce passed the check at once; the constraint keeps the first
+            if "uq_transactions_sender_nonce" in str(error.orig):
+                raise NonceConflictError(f"Nonce {transaction.nonce} was just used by this sender") from error
+            raise
         return transaction
 
     async def get_by_id(self, transaction_id: str) -> Transaction | None:
@@ -82,6 +91,11 @@ class TransactionRepositoryImpl(TransactionRepository):
             await self._session.flush()
         return transaction
 
+    async def get_last_nonce(self, address: str) -> int | None:
+        stmt = select(func.max(TransactionModel.nonce)).where(TransactionModel.sender_address == address)
+        last: int | None = (await self._session.execute(stmt)).scalar_one()
+        return last
+
     async def get_balance(self, address: str) -> float:
         stmt_in = select(TransactionModel).where(
             TransactionModel.receiver_address == address, TransactionModel.status == TransactionStatus.CONFIRMED
@@ -113,5 +127,6 @@ class TransactionRepositoryImpl(TransactionRepository):
             signature=model.signature,
             tx_hash=model.tx_hash,
             payload=model.payload,
+            nonce=model.nonce,
             block_id=model.block_id,
         )

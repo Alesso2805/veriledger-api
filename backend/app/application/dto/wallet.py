@@ -6,6 +6,11 @@ class WalletKeyPairDTO(BaseModel):
     private_key: str
 
 
+class NonceResponseDTO(BaseModel):
+    address: str
+    nonce: int
+
+
 class BalanceResponseDTO(BaseModel):
     address: str
     balance: float

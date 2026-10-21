@@ -37,5 +37,9 @@ class TransactionRepository(ABC):
         pass
 
     @abstractmethod
+    async def get_last_nonce(self, address: str) -> int | None:
+        pass
+
+    @abstractmethod
     async def get_balance(self, address: str) -> float:
         pass

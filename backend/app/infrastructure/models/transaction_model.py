@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Numeric, String, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -11,6 +11,8 @@ from backend.app.infrastructure.models.base_model import BaseModel
 
 class TransactionModel(BaseModel):
     __tablename__ = "transactions"
+    # A sender uses each nonce once (ADR-0004); rows from before VLA-16 have none, and NULLs never collide
+    __table_args__ = (UniqueConstraint("sender_address", "nonce", name="uq_transactions_sender_nonce"),)
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     sender_address: Mapped[str] = mapped_column(String, index=True)
@@ -22,6 +24,7 @@ class TransactionModel(BaseModel):
     signature: Mapped[str] = mapped_column(String)
     tx_hash: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
     payload: Mapped[str | None] = mapped_column(String, nullable=True)
+    nonce: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
 
     block_id: Mapped[str | None] = mapped_column(ForeignKey("blocks.id"), nullable=True)
     block = relationship("BlockModel", back_populates="transactions")

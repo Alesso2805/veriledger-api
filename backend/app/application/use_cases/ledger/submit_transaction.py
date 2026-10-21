@@ -7,11 +7,12 @@ import httpx
 from backend.app.application.dto.transaction import TransactionCreateRequestDTO
 from backend.app.domain.entities.node import Node
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
+from backend.app.domain.errors import NonceConflictError
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.hashing import HasherService
 from backend.app.domain.ports.services.signature import SignatureService
-from backend.app.domain.signed_message import build_signed_message
+from backend.app.domain.signed_message import build_signed_message, next_nonce
 
 
 class SubmitTransactionUseCase:
@@ -36,6 +37,7 @@ class SubmitTransactionUseCase:
             receiver_address=request.receiver_address,
             amount=request.amount,
             fee=request.fee,
+            nonce=request.nonce,
             payload=request.payload,
         )
         if not self.signature_service.verify_signature(request.sender_address, message, request.signature):
@@ -52,6 +54,7 @@ class SubmitTransactionUseCase:
             timestamp=now,
             signature=request.signature,
             payload=request.payload,
+            nonce=request.nonce,
         )
         tx_hash = self.hasher.hash_transaction(temp_tx)
 
@@ -60,6 +63,12 @@ class SubmitTransactionUseCase:
         existing_tx = await self.tx_repo.get_by_hash(tx_hash)
         if existing_tx:
             return existing_tx
+
+        expected = next_nonce(await self.tx_repo.get_last_nonce(request.sender_address))
+        if request.nonce != expected:
+            raise NonceConflictError(
+                f"Nonce {request.nonce} is not the next one for this sender; the next is {expected}"
+            )
 
         balance = await self.tx_repo.get_balance(request.sender_address)
         total_required = amount + fee
