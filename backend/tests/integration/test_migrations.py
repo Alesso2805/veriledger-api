@@ -6,6 +6,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -58,11 +59,20 @@ def test_ar06_the_models_and_the_migration_history_describe_the_same_schema(alem
     command.check(alembic_config)
 
 
-@pytest.mark.xfail(
-    strict=True, reason="VLA-25: the ledger migration's downgrade leaves the transactionstatus enum behind"
-)
 def test_ar07_the_migrations_go_down_to_base_and_up_again_leaving_nothing_behind(alembic_config: Config) -> None:
     command.upgrade(alembic_config, "head")
     command.downgrade(alembic_config, "base")
     assert leftovers() == [[], []]
     command.upgrade(alembic_config, "head")
+
+
+@pytest.mark.parametrize("column", ["amount", "fee"])
+def test_the_migrated_schema_refuses_a_negative_amount_or_fee(alembic_config: Config, column: str) -> None:
+    command.upgrade(alembic_config, "head")
+    values = {"amount": "1", "fee": "0", column: "-0.00000001"}
+
+    with pytest.raises(IntegrityError, match=f"ck_transactions_{column}_not_negative"):
+        run_sql(
+            "INSERT INTO transactions (id, sender_address, receiver_address, amount, fee, status, timestamp, signature)"
+            f" VALUES ('t', 'a', 'b', {values['amount']}, {values['fee']}, 'PENDING', now(), 'sig')"
+        )

@@ -98,7 +98,7 @@ PostgreSQL 16. One Alembic history in `backend/alembic/versions`. Every table in
 | | `block_hash` | varchar | NOT NULL, unique index | Built |
 | `transactions` | `id` | varchar | PK | Built |
 | | `sender_address`, `receiver_address` | varchar | NOT NULL, indexed; `SYSTEM` is the coinbase sender | Built |
-| | `amount`, `fee` | numeric(18, 8) | NOT NULL, `fee` default 0; CHECK ≥ 0 | Built without CHECK; CHECK in VLA-25 |
+| | `amount`, `fee` | numeric(18, 8) | NOT NULL, `fee` default 0; CHECK ≥ 0 (`ck_transactions_amount_not_negative`, `ck_transactions_fee_not_negative`) | Built; the CHECKs since VLA-25 |
 | | `status` | enum `transactionstatus` (`PENDING`, `CONFIRMED`, `FAILED`) | NOT NULL, indexed | Built |
 | | `timestamp` | timestamptz | NOT NULL | Built |
 | | `signature` | varchar | NOT NULL; `COINBASE` for coinbase transactions | Built |
