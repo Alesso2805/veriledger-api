@@ -2,12 +2,11 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from backend.app.application.dto.transaction import TransactionResponseDTO
+
 
 class MineBlockRequestDTO(BaseModel):
     miner_address: str
-
-
-from backend.app.application.dto.transaction import TransactionResponseDTO
 
 
 class BlockResponseDTO(BaseModel):

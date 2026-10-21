@@ -25,7 +25,7 @@ async def register_node(
         node = await use_case.execute(request)
         return NodeResponseDTO(id=node.id, url=node.url, status=node.status)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("", response_model=list[NodeResponseDTO])

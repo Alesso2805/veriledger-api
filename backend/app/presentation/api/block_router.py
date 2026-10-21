@@ -1,6 +1,13 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 
-from backend.app.application.dto.block import BlockResponseDTO, MineBlockRequestDTO, PaginatedBlockResponseDTO
+from backend.app.application.dto.block import (
+    BlockResponseDTO,
+    FullBlockResponseDTO,
+    MineBlockRequestDTO,
+    PaginatedBlockResponseDTO,
+    PaginatedFullBlockResponseDTO,
+)
+from backend.app.application.dto.transaction import TransactionResponseDTO
 from backend.app.application.use_cases.ledger.mine_block import MineBlockUseCase
 from backend.app.domain.entities.user import User
 from backend.app.infrastructure.consensus.pow_service import ProofOfWorkServiceImpl
@@ -43,10 +50,6 @@ async def get_blocks(
         page=skip // limit + 1 if limit > 0 else 1,
         size=limit,
     )
-
-
-from backend.app.application.dto.block import FullBlockResponseDTO, PaginatedFullBlockResponseDTO
-from backend.app.application.dto.transaction import TransactionResponseDTO
 
 
 @router.get("/full", response_model=PaginatedFullBlockResponseDTO)
@@ -115,7 +118,7 @@ async def mine_block(
     try:
         block = await use_case.execute(miner_address=request.miner_address)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
     # Background tasks run after the response, so peers only hear of the block once it is committed
     background_tasks.add_task(use_case.broadcast_block)
