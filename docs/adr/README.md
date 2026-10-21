@@ -11,5 +11,6 @@ One technical decision per file: context, options, decision and consequences. An
 | [0005](0005-deploy-on-one-server-behind-caddy.md) | Deploy the API and the webapp on one server, behind Caddy, on one hostname | Accepted |
 | [0006](0006-demo-access.md) | Demo access with public reads and one-click temporary accounts | Accepted |
 | [0007](0007-one-transaction-per-request.md) | One database transaction per request, committed before the response; broadcasts after it | Accepted |
+| [0008](0008-proof-of-work-in-a-worker-thread.md) | The Proof of Work runs in a worker thread of the API process | Accepted |
 
 Statuses: Proposed → Accepted → (Superseded by ADR-NNNN | Deprecated). "Retroactive" means the decision was taken in code on July 28–29, 2026 and written down on October 20, 2026.
