@@ -5,6 +5,7 @@ from backend.app.domain.entities.block import Block
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
 
+
 class ResolveConflictsUseCase:
     def __init__(self, node_repo: NodeRepository, block_repo: BlockRepository):
         self._node_repo = node_repo
@@ -28,18 +29,18 @@ class ResolveConflictsUseCase:
                         data = response.json()
                         length = data.get("total", 0)
                         items = data.get("items", [])
-                        
+
                         if length > max_length and self._is_valid_chain(items):
                             max_length = length
                             new_chain = items
                 except httpx.RequestError:
                     continue
-        
+
         if new_chain:
             # We found a longer valid chain. Replace ours.
             await self._block_repo.replace_chain(new_chain)
             return True
-        
+
         return False
 
     def _is_valid_chain(self, chain_data: list[dict]) -> bool:
@@ -49,7 +50,7 @@ class ResolveConflictsUseCase:
         """
         if not chain_data:
             return False
-            
+
         last_block = chain_data[0]
         for current_block in chain_data[1:]:
             # Verify previous hash (Note: assuming chain is ordered oldest to newest, wait, our get_all returns newest first)
@@ -58,5 +59,5 @@ class ResolveConflictsUseCase:
             if current_block.get("block_hash") != last_block.get("previous_hash"):
                 return False
             last_block = current_block
-            
+
         return True

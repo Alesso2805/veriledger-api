@@ -11,6 +11,7 @@ class MineBlockRequestDTO(BaseModel):
 
 from backend.app.application.dto.transaction import TransactionResponseDTO
 
+
 class BlockResponseDTO(BaseModel):
     id: str
     block_number: int
@@ -19,6 +20,7 @@ class BlockResponseDTO(BaseModel):
     nonce: int
     block_hash: str
     transaction_ids: list[str]
+
 
 class FullBlockResponseDTO(BaseModel):
     id: str
@@ -29,11 +31,13 @@ class FullBlockResponseDTO(BaseModel):
     block_hash: str
     transactions: list[TransactionResponseDTO]
 
+
 class PaginatedBlockResponseDTO(BaseModel):
     items: List[BlockResponseDTO]
     total: int
     page: int
     size: int
+
 
 class PaginatedFullBlockResponseDTO(BaseModel):
     items: List[FullBlockResponseDTO]

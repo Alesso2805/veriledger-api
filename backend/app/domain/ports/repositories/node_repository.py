@@ -3,6 +3,7 @@ from typing import Optional
 
 from backend.app.domain.entities.node import Node
 
+
 class NodeRepository(ABC):
     @abstractmethod
     async def create(self, node: Node) -> Node:

@@ -4,6 +4,7 @@ from sqlalchemy.types import String
 
 from backend.app.infrastructure.models.base_model import BaseModel
 
+
 class NodeModel(BaseModel):
     __tablename__ = "nodes"
 

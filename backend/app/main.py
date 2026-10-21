@@ -7,7 +7,14 @@ from pydantic import BaseModel
 
 from backend.app.core.config import settings
 from backend.app.core.logger import setup_logging
-from backend.app.presentation.api import auth_router, user_router, transaction_router, block_router, wallet_router, node_router
+from backend.app.presentation.api import (
+    auth_router,
+    user_router,
+    transaction_router,
+    block_router,
+    wallet_router,
+    node_router,
+)
 
 logger = structlog.get_logger()
 
