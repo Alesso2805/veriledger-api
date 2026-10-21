@@ -35,7 +35,7 @@ Status: **Built** (exists on `main`, see the audit for its defects), **Planned**
 | Identity | Users and roles | Roles `admin`, `trader`, `viewer`; only admin creates users; bcrypt hashes; soft delete column | Built (VLA-02) |
 | Identity | Demo accounts | One click makes a 24-hour `trader` account, with no email or password (ADR-0006) | Built (VLA-35), with its limits |
 | Identity | Admin seed | `make seed` creates the admin once | Built (VLA-02); credentials from the environment in VLA-24 |
-| Wallets | Key pair | `POST /wallets/generate` returns an Ed25519 pair in hex | Built (VLA-04); development only in VLA-21, the webapp generates keys itself (VLW-16) |
+| Wallets | Key pair | `POST /wallets/generate` returns an Ed25519 pair in hex | Built (VLA-04); development only since VLA-21, and the webapp generates keys itself (VLW-16) |
 | Wallets | Balance | `GET /wallets/{address}/balance`: confirmed received − (confirmed and pending sent + fees) | Built (VLA-04) |
 | Ledger | Signed transactions | The API rebuilds the signed message and verifies the Ed25519 signature; valid ones enter the mempool as `PENDING` | Built (VLA-03); canonical message in VLA-15 |
 | Ledger | Replay protection | A per-sender nonce inside the signed message, and a transaction hash over what was signed | Built (VLA-16) |
@@ -77,6 +77,8 @@ The admin seed lives in `backend/app/cli/seed.py`. Like the routers, it is a com
 **Adopting a chain.** Each adopted transaction keeps its payload and nonce. A pending transaction that the new chain already holds, or whose nonce it used, leaves the mempool, since it can no longer be mined.
 
 **Processes.** One API process (uvicorn), in the image of `Dockerfile` (VLA-22): uv builds the virtual environment from `uv.lock` with `--frozen --no-dev` on the base image's Python 3.12.13, and the final stage keeps only that environment and `backend/`, without uv, the tests or `.env`; it runs as uid 10001, without `--reload`, with a `HEALTHCHECK` on `/health`; both bases are pinned by digest. The Image workflow publishes it for amd64 and arm64 to `ghcr.io/alesso2805/veriledger-api`, tagged `main` and `sha-<commit>` on every push to main and with the version on a release tag; the webapp's end-to-end CI pulls it. `docker compose up` starts PostgreSQL 16, then a `migrate` service that runs `alembic upgrade head` once and exits, then the API, only if `migrate` succeeded, so `/health` answers only on a migrated database (VLA-23). `deploy/docker-compose.prod.yml` does the same with the published image, no bind mounts, no published database port, the API on the host's loopback for Caddy (VLA-27), and the secrets of `deploy/.env`. There are no background workers; broadcasts run as FastAPI background tasks in the API process, after the response, so peers only hear of committed data (ADR-0007). The Proof of Work runs in a worker thread of the same process, so the event loop keeps answering while a block is mined (ADR-0008).
+
+**Production settings (VLA-21).** With `APP_ENV=production` the API does not start if `SECRET_KEY` is missing (the development default), the example value of `.env.example`, or shorter than 32 bytes: whoever knows the key signs a token for any user. `APP_DEBUG`, which echoes every SQL statement, is off unless set. `CORS_ORIGINS` is the comma-separated list of browser origins allowed to call the API: the webapp's dev and preview servers in development, empty in production, where Caddy gives the webapp and the API one origin (ADR-0005).
 
 ## Data model
 
@@ -123,7 +125,7 @@ The generated OpenAPI document is the contract; this table is its summary. The s
 | POST | `/auth/demo` | Public, only with `DEMO_MODE` | — | Creates a 24-hour `trader` account named `Guest XXXX` and returns its token, 201 (› Demo accounts); 404 without `DEMO_MODE`; 429 past › Demo limits |
 | GET | `/auth/me` | JWT | Any | The current user: `email` (null for a demo account), `display_name` (the email, or `Guest XXXX`), `role`, `expires_at` (set only for a demo account) |
 | POST | `/users` | JWT | admin | Create a user |
-| POST | `/wallets/generate` | Public | — | Development only (VLA-21) |
+| POST | `/wallets/generate` | Public | — | Development only: 404 when `APP_ENV` is not `development`, since the private key would cross the network (VLA-21) |
 | GET | `/wallets/{address}/balance` | Public | — | `{address, balance}` |
 | GET | `/wallets/{address}/nonce` | Public | — | The sender's next nonce: one more than the last accepted, 1 for a new address |
 | POST | `/transactions` | JWT or peer token | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings. A byte-identical replay answers 200 with the stored transaction; another body with a used or skipped `nonce` answers 409 |
@@ -186,8 +188,8 @@ The active count is read from the database. The other two are counted by a slidi
 | Atomicity | Mining writes coinbase, block and confirmations together or not at all | `test_mining.py`: a confirmation that fails after the block and the coinbase were flushed leaves nothing written (VLA-17) |
 | Concurrency | Two simultaneous mine requests never produce a duplicate `block_number` | `test_mining.py`: four simultaneous mines give consecutive blocks or 409, one coinbase each, and the pending transfer in one block; a stale latest block answers 409 (VLA-17) |
 | Availability | Mining does not block other requests | `test_mining.py`: with the Proof of Work held, `/health` answers first (VLA-17, ADR-0008) |
-| Security | Production refuses a missing, default or short `SECRET_KEY`; debug off by default; CORS origins from configuration | Settings tests (VLA-21) |
-| Security | The server never generates or receives private keys in production | `/wallets/generate` answers 404 in production (VLA-21); webapp test (VLW-16) |
+| Security | Production refuses a missing, default or short `SECRET_KEY`; debug off by default; CORS origins from configuration | `test_settings.py`: production refuses a missing (the development default), example, empty or short `SECRET_KEY` and accepts a long one; `APP_DEBUG` is off unless set; `CORS_ORIGINS` is parsed. `test_cors.py`: a configured origin passes the preflight, another does not, and the middleware takes its list from `CORS_ORIGINS` (VLA-21) |
+| Security | The server never generates or receives private keys in production | `test_wallet_generate.py`: `/wallets/generate` answers 404 outside development (VLA-21); webapp test (VLW-16) |
 | Security | Peer URLs cannot point the server at internal addresses | One test per refused range and a name with one private answer (`test_resolving_peer_url_policy.py`); refused and not stored at the endpoint (`test_peer_urls.py`); skipped before a call (VLA-19) |
 | Security | Only a node holding the peer token submits or asks for a resolve without a user, and the token opens no other route | `test_peer_token.py`, AR-08, and two running nodes in `test_two_nodes.py` (VLA-19) |
 | Security | Login and transaction submission are rate limited | 429 tests (VLA-29) |
