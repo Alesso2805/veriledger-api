@@ -12,7 +12,6 @@ class ProofOfWorkServiceImpl(ConsensusService):
         block.nonce = 0
 
         while True:
-            # We use the hasher service to calculate the hash for the current nonce
             current_hash = self.hasher.hash_block(block)
 
             if current_hash.startswith(target):

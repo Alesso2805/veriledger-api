@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     app_debug: bool = True
     database_url: str
 
-    secret_key: str = "supersecretkey"  # Override in production
+    secret_key: str = "supersecretkey"  # Development default; VLA-21 makes production refuse it
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 

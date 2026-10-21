@@ -20,7 +20,6 @@ async def seed_admin() -> None:
         hasher = PasswordHasherImpl()
         use_case = RegisterUserUseCase(user_repo, hasher)
 
-        # Check if admin exists
         existing_admin = await user_repo.get_by_email("admin@veriledger.com")
         if existing_admin:
             logger.info("Admin user already exists")

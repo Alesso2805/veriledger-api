@@ -68,7 +68,6 @@ class TransactionRepositoryImpl(TransactionRepository):
         return transaction
 
     async def get_balance(self, address: str) -> float:
-        # Received amounts (where status is CONFIRMED)
         stmt_in = select(TransactionModel).where(
             TransactionModel.receiver_address == address, TransactionModel.status == TransactionStatus.CONFIRMED
         )

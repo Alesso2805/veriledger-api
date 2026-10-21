@@ -69,15 +69,12 @@ class BlockRepositoryImpl(BlockRepository):
         from backend.app.domain.entities.transaction import TransactionStatus
         from backend.app.infrastructure.models.transaction_model import TransactionModel
 
-        # 1. Delete all blocks (this will set block_id to NULL for txs if no cascade, so we delete txs too)
+        # Confirmed transactions belong to the blocks being replaced; pending ones stay in the mempool
         await self._session.execute(
             delete(TransactionModel).where(TransactionModel.status == TransactionStatus.CONFIRMED)
         )
         await self._session.execute(delete(BlockModel))
 
-        # 2. Re-insert the new chain
-        # Note: We process them from oldest to newest if the list is newest first, wait.
-        # Usually list from /blocks is newest first (desc). So we just insert them as they are.
         for block_data in new_chain_data:
             block = BlockModel(
                 id=block_data["id"],
