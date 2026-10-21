@@ -9,6 +9,7 @@ from backend.app.application.dto.block import (
 )
 from backend.app.application.dto.transaction import TransactionResponseDTO
 from backend.app.application.use_cases.ledger.mine_block import MineBlockUseCase
+from backend.app.core.config import settings
 from backend.app.domain.entities.block import Block
 from backend.app.domain.entities.user import User, UserRole
 from backend.app.domain.errors import BlockHeightTakenError
@@ -116,7 +117,16 @@ async def mine_block(
     hasher = SHA256HasherImpl()
     consensus_service = ProofOfWorkServiceImpl(hasher)
 
-    use_case = MineBlockUseCase(block_repo, tx_repo, consensus_service, hasher, node_repo, HttpxPeerClient())
+    use_case = MineBlockUseCase(
+        block_repo,
+        tx_repo,
+        consensus_service,
+        hasher,
+        node_repo,
+        HttpxPeerClient(),
+        difficulty=settings.mining_difficulty,
+        reward=settings.mining_reward,
+    )
 
     try:
         block = await use_case.execute(miner_address=request.miner_address)

@@ -22,6 +22,9 @@ class MineBlockUseCase:
         hasher: HasherService,
         node_repo: NodeRepository | None = None,
         peer_client: PeerClient | None = None,
+        *,
+        difficulty: int,
+        reward: float,
     ):
         self.block_repo = block_repo
         self.tx_repo = tx_repo
@@ -29,6 +32,8 @@ class MineBlockUseCase:
         self.hasher = hasher
         self.node_repo = node_repo
         self.peer_client = peer_client
+        self.difficulty = difficulty
+        self.reward = reward
         self._peers: list[Node] = []
 
     async def execute(self, miner_address: str) -> BlockResponseDTO:
@@ -55,7 +60,7 @@ class MineBlockUseCase:
             id=str(uuid.uuid4()),
             sender_address="SYSTEM",
             receiver_address=miner_address,
-            amount=50.0 + total_fees,
+            amount=self.reward + total_fees,
             fee=0.0,
             status=TransactionStatus.CONFIRMED,
             timestamp=now,
@@ -76,8 +81,7 @@ class MineBlockUseCase:
             transaction_ids=tx_ids,
         )
 
-        # Fixed difficulty until VLA-17 makes it a setting
-        nonce, block_hash = self.consensus_service.mine_block(block, difficulty=4)
+        nonce, block_hash = await self.consensus_service.mine_block(block, difficulty=self.difficulty)
         block.nonce = nonce
         block.block_hash = block_hash
 

@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +10,11 @@ class Settings(BaseSettings):
     secret_key: str = "supersecretkey"  # Development default; VLA-21 makes production refuse it
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+
+    # The nodes of one network need the same values, since a peer's blocks are checked against ours (VLA-18).
+    # A SHA-256 hex digest has 64 characters, so no hash meets a higher difficulty
+    mining_difficulty: int = Field(default=4, ge=1, le=64)
+    mining_reward: float = Field(default=50.0, ge=0)
 
     # Shared by the nodes of one network (VLA-19); unset or empty, no call is taken for a peer's
     peer_token: str | None = None

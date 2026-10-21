@@ -17,6 +17,8 @@ from backend.app.domain.ports.services.consensus import ConsensusService
 from backend.app.domain.ports.services.hashing import HasherService
 from backend.app.domain.ports.services.peer_client import PeerClient
 
+DEFAULTS: dict[str, Any] = {"difficulty": 4, "reward": 50.0}
+
 
 @pytest.fixture
 def mock_block_repo() -> Any:
@@ -62,7 +64,14 @@ async def test_mine_block_success(
     mock_peer_client: Any,
 ) -> None:
     use_case = MineBlockUseCase(
-        mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher, mock_node_repo, mock_peer_client
+        mock_block_repo,
+        mock_tx_repo,
+        mock_consensus,
+        mock_hasher,
+        mock_node_repo,
+        mock_peer_client,
+        difficulty=4,
+        reward=50.0,
     )
 
     pending_tx = Transaction(
@@ -135,7 +144,9 @@ async def test_nothing_is_written_until_the_nonce_is_found_and_the_block_goes_fi
     mock_tx_repo.create.side_effect = step(order, "coinbase", lambda tx: tx)
     mock_tx_repo.update.side_effect = step(order, "confirmation", lambda tx: tx)
 
-    result = await MineBlockUseCase(mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher).execute("miner1")
+    result = await MineBlockUseCase(mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher, **DEFAULTS).execute(
+        "miner1"
+    )
 
     assert order == ["latest block", "mempool", "proof of work", "block", "coinbase", "confirmation"]
     # The coinbase is written once, already in its block
@@ -151,7 +162,24 @@ async def test_a_taken_height_stops_the_block_before_the_coinbase_and_the_confir
     mock_block_repo.create.side_effect = BlockHeightTakenError("Block 0 was just mined by another request; mine again")
 
     with pytest.raises(BlockHeightTakenError):
-        await MineBlockUseCase(mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher).execute("miner1")
+        await MineBlockUseCase(mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher, **DEFAULTS).execute("miner1")
 
     mock_tx_repo.create.assert_not_called()
     mock_tx_repo.update.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_the_difficulty_and_the_reward_are_the_ones_given(
+    mock_block_repo: Any, mock_tx_repo: Any, mock_consensus: Any, mock_hasher: Any
+) -> None:
+    mock_block_repo.get_latest_block.return_value = None
+    pending = pending_transaction()
+    pending.fee = 0.25
+    mock_tx_repo.get_by_status.return_value = [pending]
+
+    use_case = MineBlockUseCase(mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher, difficulty=3, reward=12.5)
+    await use_case.execute("miner1")
+
+    assert mock_consensus.mine_block.await_args.kwargs["difficulty"] == 3
+    # The reward plus the block's fees
+    assert mock_tx_repo.create.call_args.args[0].amount == 12.75
