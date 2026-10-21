@@ -39,9 +39,9 @@ Status: **Built** (exists on `main`, see the audit for its defects), **Planned**
 | Ledger | Signed transactions | The API rebuilds the signed message and verifies the Ed25519 signature; valid ones enter the mempool as `PENDING` | Built (VLA-03); canonical message in VLA-15 |
 | Ledger | Replay protection | A per-sender nonce inside the signed message, and a transaction hash over what was signed | Built (VLA-16) |
 | Ledger | Notarization | Amount 0 with a `payload` (the document's hash) that is part of the signed message | Built (VLA-08) |
-| Mining | Proof of Work | All pending transactions plus a coinbase go into one block; SHA-256 with 4 leading hex zeros | Built (VLA-05) |
-| Mining | Reward and fees | Coinbase from `SYSTEM` of 50 + the block's fees to the miner | Built (VLA-06) |
-| Mining | Atomic and non-blocking | One DB transaction per block; PoW off the event loop; difficulty and reward in settings | Atomic since VLA-17 (one transaction per request, ADR-0007; a taken height answers 409); PoW off the event loop and the settings in VLA-17's second part |
+| Mining | Proof of Work | All pending transactions plus a coinbase go into one block; SHA-256 with `MINING_DIFFICULTY` leading hex zeros (4 by default) | Built (VLA-05); the difficulty is a setting since VLA-17 |
+| Mining | Reward and fees | Coinbase from `SYSTEM` of `MINING_REWARD` (50 by default) + the block's fees to the miner | Built (VLA-06); the reward is a setting since VLA-17 |
+| Mining | Atomic and non-blocking | One DB transaction per block; PoW off the event loop; difficulty and reward in settings | Built (VLA-17): one transaction per request (ADR-0007), 409 for a taken height, the PoW in a worker thread (ADR-0008) |
 | Network | Peers | Register, list; new transactions and blocks are broadcast to peers, which take the shared peer token in place of a user | Built (VLA-07); the peer token and safe peer URLs since VLA-19 |
 | Network | Consensus | `POST /nodes/resolve` adopts the longest valid chain among peers | Built (VLA-07) with a structural check only; full validation in VLA-18 |
 | Operations | Health | `GET /health` | Built (VLA-01); database check in VLA-26 |
@@ -65,7 +65,7 @@ The admin seed lives in `backend/app/cli/seed.py`. Like the routers, it is a com
 
 **Request flow (submit a transfer).** Router → `SubmitTransactionUseCase` → rebuild the signed message → `SignatureService.verify_signature` → `HasherService.hash_transaction` → duplicate check by hash → balance check → `TransactionRepository.create` (a flush) → the session dependency commits → the response → the broadcast to peers, as a background task (ADR-0007).
 
-**Request flow (mine a block, VLA-17).** Router → `MineBlockUseCase` → the latest block, then the mempool → the coinbase and the block, built in memory → the Proof of Work, with nothing written yet → the block (a flush), then the coinbase, already in its block, then the confirmations → the session dependency commits → the response → peers are asked to resolve, as a background task. A failure at any step leaves nothing written. Two requests that mine on the same latest block aim at the same height: the unique `block_number` stops the second at its insert, and it answers 409 with nothing written. Reading the latest block before the mempool keeps a transaction out of two blocks: a block committed between the two reads is missing from the first, so the request aims at that block's height and gets the 409.
+**Request flow (mine a block, VLA-17).** Router → `MineBlockUseCase` → the latest block, then the mempool → the coinbase and the block, built in memory → the Proof of Work, in a worker thread (ADR-0008), with nothing written yet → the block (a flush), then the coinbase, already in its block, then the confirmations → the session dependency commits → the response → peers are asked to resolve, as a background task. A failure at any step leaves nothing written. Two requests that mine on the same latest block aim at the same height: the unique `block_number` stops the second at its insert, and it answers 409 with nothing written. Reading the latest block before the mempool keeps a transaction out of two blocks: a block committed between the two reads is missing from the first, so the request aims at that block's height and gets the 409.
 
 **Peer calls.** Use cases call peers through the `PeerClient` port (`domain/ports/services/peer_client.py`), implemented with httpx in `infrastructure/peers/`. They offer new transactions (`POST /transactions`), ask peers to resolve after a new block (`POST /nodes/resolve`), and read a peer's whole chain, page by page, from `GET /blocks/full` to resolve conflicts. A peer's chain is as long as what was fetched, never the `total` it claims, and it is compared with our whole chain, not one page.
 
@@ -75,7 +75,7 @@ The admin seed lives in `backend/app/cli/seed.py`. Like the routers, it is a com
 
 **Adopting a chain.** Each adopted transaction keeps its payload and nonce. A pending transaction that the new chain already holds, or whose nonce it used, leaves the mempool, since it can no longer be mined.
 
-**Processes.** One API process (uvicorn). A `migrate` container runs Alembic once before the API starts (VLA-23). There are no background workers; broadcasts run as FastAPI background tasks in the API process, after the response, so peers only hear of committed data (ADR-0007).
+**Processes.** One API process (uvicorn). A `migrate` container runs Alembic once before the API starts (VLA-23). There are no background workers; broadcasts run as FastAPI background tasks in the API process, after the response, so peers only hear of committed data (ADR-0007). The Proof of Work runs in a worker thread of the same process, so the event loop keeps answering while a block is mined (ADR-0008).
 
 ## Data model
 
@@ -158,9 +158,9 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 
 **Transaction hash (VLA-16).** SHA-256 of compact sorted-key JSON over the signed fields (`amount` and `fee` as 8-decimal strings, `nonce`, `payload` when present, `receiver_address`, `sender_address`) plus `signature`, with no id or arrival time. The same signed body is the same transaction, and two signatures are two transactions. A coinbase, which signs nothing, takes its block number as nonce, so its hash stays unique. Rows from before VLA-16 keep the hashes they were stored with.
 
-**Block hash and Proof of Work.** SHA-256 of sorted-key JSON over `id`, `block_number`, `previous_hash`, `timestamp`, `nonce` and the sorted `transaction_ids`. A block is valid when its hash starts with `difficulty` hex zeros (4 today; a setting from VLA-17).
+**Block hash and Proof of Work.** SHA-256 of sorted-key JSON over `id`, `block_number`, `previous_hash`, `timestamp`, `nonce` and the sorted `transaction_ids`. A block is valid when its hash starts with `MINING_DIFFICULTY` hex zeros (4 by default, from 1 to 64). The coinbase pays `MINING_REWARD` (50 by default, not negative) plus the block's fees. The nodes of one network need the same two values, since a peer's blocks are checked against ours (VLA-18).
 
-**Valid chain (target, VLA-18).** Starts at a genesis block with `previous_hash` of 64 zeros; each block's hash recomputes and meets the difficulty; each `previous_hash` equals the previous block's hash; block numbers are consecutive; exactly one coinbase per block of 50 + its fees; every other transaction has a valid signature, an unused nonce and a covered balance at that point of the chain.
+**Valid chain (target, VLA-18).** Starts at a genesis block with `previous_hash` of 64 zeros; each block's hash recomputes and meets the difficulty; each `previous_hash` equals the previous block's hash; block numbers are consecutive; exactly one coinbase per block of `MINING_REWARD` + its fees; every other transaction has a valid signature, an unused nonce and a covered balance at that point of the chain.
 
 ## Non-functional requirements and security
 
@@ -171,7 +171,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | Integrity | A peer cannot replace the chain with forged or tampered blocks | One test per rule of "Valid chain" (VLA-18) |
 | Atomicity | Mining writes coinbase, block and confirmations together or not at all | `test_mining.py`: a confirmation that fails after the block and the coinbase were flushed leaves nothing written (VLA-17) |
 | Concurrency | Two simultaneous mine requests never produce a duplicate `block_number` | `test_mining.py`: four simultaneous mines give consecutive blocks or 409, one coinbase each, and the pending transfer in one block; a stale latest block answers 409 (VLA-17) |
-| Availability | Mining does not block other requests | `/health` answers while a block is mined (VLA-17) |
+| Availability | Mining does not block other requests | `test_mining.py`: with the Proof of Work held, `/health` answers first (VLA-17, ADR-0008) |
 | Security | Production refuses a missing, default or short `SECRET_KEY`; debug off by default; CORS origins from configuration | Settings tests (VLA-21) |
 | Security | The server never generates or receives private keys in production | `/wallets/generate` answers 404 in production (VLA-21); webapp test (VLW-16) |
 | Security | Peer URLs cannot point the server at internal addresses | One test per refused range and a name with one private answer (`test_resolving_peer_url_policy.py`); refused and not stored at the endpoint (`test_peer_urls.py`); skipped before a call (VLA-19) |
