@@ -12,6 +12,7 @@ from backend.app.application.use_cases.ledger.mine_block import MineBlockUseCase
 from backend.app.domain.entities.block import Block
 from backend.app.domain.entities.user import User
 from backend.app.infrastructure.consensus.pow_service import ProofOfWorkServiceImpl
+from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
@@ -114,7 +115,7 @@ async def mine_block(
     hasher = SHA256HasherImpl()
     consensus_service = ProofOfWorkServiceImpl(hasher)
 
-    use_case = MineBlockUseCase(block_repo, tx_repo, consensus_service, hasher, node_repo)
+    use_case = MineBlockUseCase(block_repo, tx_repo, consensus_service, hasher, node_repo, HttpxPeerClient())
 
     try:
         block = await use_case.execute(miner_address=request.miner_address)

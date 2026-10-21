@@ -12,6 +12,7 @@ from backend.app.application.use_cases.ledger.list_pending_transactions import L
 from backend.app.application.use_cases.ledger.submit_transaction import SubmitTransactionUseCase
 from backend.app.domain.entities.user import User
 from backend.app.domain.errors import NonceConflictError
+from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
@@ -36,7 +37,7 @@ async def submit_transaction(
     hasher = SHA256HasherImpl()
     signature_service = Ed25519ServiceImpl()
 
-    use_case = SubmitTransactionUseCase(tx_repo, hasher, signature_service, node_repo)
+    use_case = SubmitTransactionUseCase(tx_repo, hasher, signature_service, node_repo, HttpxPeerClient())
 
     try:
         transaction, created = await use_case.execute(request)

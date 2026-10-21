@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import AsyncMock, create_autospec, patch
+from unittest.mock import create_autospec
 
 import pytest
 
@@ -13,6 +13,7 @@ from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.consensus import ConsensusService
 from backend.app.domain.ports.services.hashing import HasherService
+from backend.app.domain.ports.services.peer_client import PeerClient
 
 
 @pytest.fixture
@@ -44,11 +45,23 @@ def mock_node_repo() -> Any:
     return create_autospec(NodeRepository, instance=True)
 
 
+@pytest.fixture
+def mock_peer_client() -> Any:
+    return create_autospec(PeerClient, instance=True)
+
+
 @pytest.mark.asyncio
 async def test_mine_block_success(
-    mock_block_repo: Any, mock_tx_repo: Any, mock_consensus: Any, mock_hasher: Any, mock_node_repo: Any
+    mock_block_repo: Any,
+    mock_tx_repo: Any,
+    mock_consensus: Any,
+    mock_hasher: Any,
+    mock_node_repo: Any,
+    mock_peer_client: Any,
 ) -> None:
-    use_case = MineBlockUseCase(mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher, mock_node_repo)
+    use_case = MineBlockUseCase(
+        mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher, mock_node_repo, mock_peer_client
+    )
 
     pending_tx = Transaction(
         id="tx1",
@@ -82,6 +95,5 @@ async def test_mine_block_success(
     mock_block_repo.create.assert_called_once()
 
     # The router asks peers to resolve after the response; execute only reads them while the session is open
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        await use_case.broadcast_block()
-    mock_post.assert_awaited_once_with("http://peer/nodes/resolve")
+    await use_case.broadcast_block()
+    mock_peer_client.request_resolve.assert_awaited_once_with(["http://peer"])

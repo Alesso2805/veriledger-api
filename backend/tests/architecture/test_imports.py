@@ -4,14 +4,6 @@ from pathlib import Path
 
 APP = Path(__file__).resolve().parents[2] / "app"
 
-# Known debt, one entry per violation: a new violation fails at once, and fixing one fails
-# until its entry is removed. VLA-19 moves the peer calls behind a PeerClient port.
-KNOWN_APPLICATION_VIOLATIONS = {
-    "application/use_cases/ledger/mine_block.py imports httpx",
-    "application/use_cases/ledger/submit_transaction.py imports httpx",
-    "application/use_cases/network/resolve_conflicts.py imports httpx",
-}
-
 
 def imported_modules(path: Path) -> set[str]:
     modules: set[str] = set()
@@ -44,4 +36,4 @@ def test_ar01_domain_imports_only_the_standard_library_and_itself() -> None:
 
 def test_ar02_application_imports_only_the_standard_library_pydantic_and_inner_layers() -> None:
     allowed = ("pydantic", "backend.app.domain", "backend.app.core", "backend.app.application")
-    assert violations("application", allowed) == KNOWN_APPLICATION_VIOLATIONS
+    assert violations("application", allowed) == set()

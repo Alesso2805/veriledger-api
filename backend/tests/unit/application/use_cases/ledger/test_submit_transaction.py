@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import AsyncMock, create_autospec, patch
+from unittest.mock import create_autospec
 
 import pytest
 
@@ -12,6 +12,7 @@ from backend.app.domain.errors import NonceConflictError
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.hashing import HasherService
+from backend.app.domain.ports.services.peer_client import PeerClient
 from backend.app.domain.ports.services.signature import SignatureService
 
 
@@ -39,11 +40,18 @@ def mock_signature_service() -> Any:
     return sig
 
 
+@pytest.fixture
+def mock_peer_client() -> Any:
+    return create_autospec(PeerClient, instance=True)
+
+
 @pytest.mark.asyncio
 async def test_submit_transaction_success(
-    mock_tx_repo: Any, mock_hasher: Any, mock_signature_service: Any, mock_node_repo: Any
+    mock_tx_repo: Any, mock_hasher: Any, mock_signature_service: Any, mock_node_repo: Any, mock_peer_client: Any
 ) -> None:
-    use_case = SubmitTransactionUseCase(mock_tx_repo, mock_hasher, mock_signature_service, mock_node_repo)
+    use_case = SubmitTransactionUseCase(
+        mock_tx_repo, mock_hasher, mock_signature_service, mock_node_repo, mock_peer_client
+    )
     request = TransactionCreateRequestDTO(
         sender_address="sender",
         receiver_address="receiver",
@@ -75,9 +83,8 @@ async def test_submit_transaction_success(
     mock_tx_repo.create.assert_called_once()
 
     # The router sends it after the response; execute only reads the peers while the session is open
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        await use_case.broadcast_transaction(request)
-    mock_post.assert_awaited_once_with("http://peer/transactions", json=request.model_dump())
+    await use_case.broadcast_transaction(request)
+    mock_peer_client.send_transaction.assert_awaited_once_with(["http://peer"], request.model_dump())
 
 
 @pytest.mark.asyncio
