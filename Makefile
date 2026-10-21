@@ -11,6 +11,7 @@ test:
 
 lint:
 	uv run ruff check backend
+	uv run lint-imports
 
 format:
 	uv run ruff check --fix backend
@@ -27,4 +28,4 @@ migrate:
 	uv run alembic -c backend/alembic.ini upgrade head
 
 seed:
-	uv run python -m backend.app.infrastructure.seed
+	uv run python -m backend.app.cli.seed

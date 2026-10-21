@@ -24,6 +24,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "aiosqlite>=0.22.1",
+    "import-linter>=2.15",
     "mypy>=1.11.1",
     "pytest>=8.3.2",
     "pytest-asyncio>=0.23.8",
@@ -63,3 +64,37 @@ plugins = ["pydantic.mypy"]
 [[tool.mypy.overrides]]
 module = "asyncpg.*"
 ignore_missing_imports = true
+
+# Layer contracts of docs/ARCHITECTURE_RULES.md. Forbidden imports are followed transitively.
+[tool.importlinter]
+root_package = "backend"
+
+[[tool.importlinter.contracts]]
+name = "AR-03 infrastructure imports neither application nor presentation"
+type = "forbidden"
+source_modules = ["backend.app.infrastructure"]
+forbidden_modules = ["backend.app.application", "backend.app.presentation"]
+
+[[tool.importlinter.contracts]]
+name = "AR-04 core imports no other layer"
+type = "forbidden"
+source_modules = ["backend.app.core"]
+forbidden_modules = [
+    "backend.app.domain",
+    "backend.app.application",
+    "backend.app.infrastructure",
+    "backend.app.presentation",
+    "backend.app.cli",
+]
+
+[[tool.importlinter.contracts]]
+name = "AR-05 only main imports presentation"
+type = "forbidden"
+source_modules = [
+    "backend.app.domain",
+    "backend.app.application",
+    "backend.app.infrastructure",
+    "backend.app.core",
+    "backend.app.cli",
+]
+forbidden_modules = ["backend.app.presentation"]
