@@ -2,7 +2,7 @@
 
 Oct 20, 2026 · Sources: [SPEC.md](SPEC.md), [BACKLOG.md](BACKLOG.md), [CLAUDE.md](../CLAUDE.md), the README and [the ADRs](adr/).
 
-Each rule is one sentence that a test can prove or refute. A rule about "every" module, route, table or port is checked by a test that walks the whole list, so something new that breaks it fails without anyone adding a case. Apart from AR-16's, which came with VLA-32, the tests do not exist yet: they are VLA-13, and wait for the tool below to be confirmed.
+Each rule is one sentence that a test can prove or refute. A rule about "every" module, route, table or port is checked by a test that walks the whole list, so something new that breaks it fails without anyone adding a case. AR-01 to AR-05 (VLA-13) and AR-16 (VLA-32) have their tests; VLA-13 adds the others.
 
 ## Rules
 
@@ -44,7 +44,7 @@ They come from the README. They are not rules until they are made concrete; this
 | A composition root: only `presentation/dependencies` imports `infrastructure`; routers receive use cases through `Depends`. | The wiring is repeated in every router, and swapping an implementation means editing six files. | Every router imports `infrastructure` directly. |
 | An injected clock and id generator: `datetime.now` and `uuid.uuid4` only inside `infrastructure` (Ruff `banned-api`, as in willay). | Use cases become deterministic in tests; replay and ordering tests (VLA-16, VLA-18) need a controllable clock. | 8 occurrences in `application`. |
 
-## Proposed tool (waiting for your confirmation)
+## Tool (confirmed by the product owner on 2026-10-20)
 
 **import-linter + Pytest architecture tests + Alembic**, all run in CI (VLA-10):
 
@@ -55,7 +55,7 @@ They come from the README. They are not rules until they are made concrete; this
 
 Alternatives considered: only Pytest with `ast` (no new dependency, but transitive imports would need to be reimplemented), and PyTestArch (an ArchUnit port for Python, less used and slower). Neither checks more than the proposal.
 
-## Which test covers which rule (after confirmation)
+## Which test covers which rule
 
 | Test | Rules |
 | --- | --- |
@@ -69,4 +69,8 @@ Alternatives considered: only Pytest with `ast` (no new dependency, but transiti
 | `backend/tests/unit/core/test_settings.py` | AR-15 |
 | `backend/tests/unit/presentation/test_db_session_dependency.py` | AR-16 |
 
-**A rule that will fail on the first run, on its own.** AR-02: `mine_block.py`, `submit_transaction.py` and `resolve_conflicts.py` import `httpx`. AR-03 (the seed), AR-07 (the enum left behind), AR-09 (roles), AR-10 (two routes without a response model), AR-14 and AR-15 fail too. VLA-13 lands the tests with those rules marked `xfail` and the story that fixes each, so CI is green and the debt is visible; removing an `xfail` is part of the fixing story's DoD.
+**Rules that fail today, and how their tests say so.** CI stays green and the debt stays visible, and removing it is part of the fixing story's DoD:
+
+- A rule over a list pins today's violations one by one, with the story that removes them. A new violation fails at once, and a fixed one fails until its entry is removed. AR-02: `mine_block.py`, `submit_transaction.py` and `resolve_conflicts.py` import `httpx` (VLA-19).
+- A rule with no list to pin is marked `xfail(strict=True)` with its story, so it fails once it passes: AR-07 (the enum left behind), AR-09 (roles), AR-10 (two routes without a response model), AR-14 and AR-15.
+- AR-03 failed because of the seed in `infrastructure`; VLA-13 moved it to `backend/app/cli/seed.py`.
