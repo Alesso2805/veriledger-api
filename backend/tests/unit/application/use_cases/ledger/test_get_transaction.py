@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import create_autospec
 
 import pytest
@@ -8,12 +10,12 @@ from backend.app.domain.ports.repositories.transaction_repository import Transac
 
 
 @pytest.fixture
-def mock_tx_repo():
+def mock_tx_repo() -> Any:
     return create_autospec(TransactionRepository, instance=True)
 
 
 @pytest.mark.asyncio
-async def test_get_transaction_success(mock_tx_repo):
+async def test_get_transaction_success(mock_tx_repo: Any) -> None:
     use_case = GetTransactionByHashUseCase(mock_tx_repo)
 
     expected_tx = Transaction(
@@ -23,7 +25,7 @@ async def test_get_transaction_success(mock_tx_repo):
         amount=10.0,
         fee=1.0,
         status=TransactionStatus.PENDING,
-        timestamp=None,
+        timestamp=datetime.now(UTC),
         signature="sig",
         tx_hash="hash",
     )
@@ -36,7 +38,7 @@ async def test_get_transaction_success(mock_tx_repo):
 
 
 @pytest.mark.asyncio
-async def test_get_transaction_not_found(mock_tx_repo):
+async def test_get_transaction_not_found(mock_tx_repo: Any) -> None:
     use_case = GetTransactionByHashUseCase(mock_tx_repo)
 
     mock_tx_repo.get_by_hash.return_value = None

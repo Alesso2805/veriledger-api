@@ -20,7 +20,7 @@ def all_routes() -> list[APIRoute]:
 
 
 def session_scopes(dependant: Dependant) -> list[str | None]:
-    scopes = []
+    scopes: list[str | None] = []
     for sub in dependant.dependencies:
         if sub.call is get_db_session:
             scopes.append(sub.scope)
@@ -31,7 +31,7 @@ def session_scopes(dependant: Dependant) -> list[str | None]:
 def test_every_route_commits_before_the_response() -> None:
     # A plain Depends(get_db_session) would commit after the response is sent and open a second session
     scopes_by_route = {
-        f"{sorted(route.methods)} {route.path}": session_scopes(route.dependant) for route in all_routes()
+        f"{sorted(route.methods or ())} {route.path}": session_scopes(route.dependant) for route in all_routes()
     }
 
     assert any(scopes_by_route.values()), "no route uses the session; the walk is broken"

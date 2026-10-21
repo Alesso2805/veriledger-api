@@ -1,6 +1,7 @@
+from typing import Any
+
 import httpx
 
-from backend.app.domain.entities.block import Block
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
 
@@ -18,7 +19,7 @@ class ResolveConflictsUseCase:
         nodes = await self._node_repo.get_all()
         our_blocks = await self._block_repo.get_all_blocks()
         max_length = len(our_blocks)
-        new_chain: list[Block] | None = None
+        new_chain: list[dict[str, Any]] | None = None
 
         async with httpx.AsyncClient() as client:
             for node in nodes:
@@ -42,7 +43,7 @@ class ResolveConflictsUseCase:
 
         return False
 
-    def _is_valid_chain(self, chain_data: list[dict]) -> bool:
+    def _is_valid_chain(self, chain_data: list[dict[str, Any]]) -> bool:
         """
         Validate the new chain hashes and proof of work.
         For MVP, we just do a simple structural check.

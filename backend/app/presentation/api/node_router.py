@@ -42,7 +42,7 @@ async def get_nodes(
 async def resolve_conflicts(
     db: DbSession,
     current_user: User = Depends(get_current_user),
-):
+) -> dict[str, str | bool]:
     node_repo = NodeRepositoryImpl(db)
     block_repo = BlockRepositoryImpl(db)
     use_case = ResolveConflictsUseCase(node_repo, block_repo)

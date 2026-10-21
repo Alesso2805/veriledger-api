@@ -27,7 +27,7 @@ async def generate_wallet() -> WalletKeyPairDTO:
 async def get_balance(
     address: str,
     db: DbSession,
-) -> dict:
+) -> dict[str, str | float]:
     tx_repo = TransactionRepositoryImpl(db)
     use_case = GetBalanceUseCase(tx_repo)
     balance = await use_case.execute(address)

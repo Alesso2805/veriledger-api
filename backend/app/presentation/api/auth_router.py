@@ -22,7 +22,7 @@ async def login(db: DbSession, form_data: OAuth2PasswordRequestForm = Depends())
     use_case = LoginUseCase(user_repo, password_hasher, token_service)
 
     try:
-        login_dto = LoginDTO(email=form_data.username, password=form_data.password)  # type: ignore
+        login_dto = LoginDTO(email=form_data.username, password=form_data.password)
         token = await use_case.execute(login_dto)
         return token
     except ValueError as e:

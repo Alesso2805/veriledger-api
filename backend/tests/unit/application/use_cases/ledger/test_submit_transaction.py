@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import AsyncMock, create_autospec, patch
 
 import pytest
@@ -14,31 +15,33 @@ from backend.app.domain.ports.services.signature import SignatureService
 
 
 @pytest.fixture
-def mock_tx_repo():
+def mock_tx_repo() -> Any:
     return create_autospec(TransactionRepository, instance=True)
 
 
 @pytest.fixture
-def mock_node_repo():
+def mock_node_repo() -> Any:
     return create_autospec(NodeRepository, instance=True)
 
 
 @pytest.fixture
-def mock_hasher():
+def mock_hasher() -> Any:
     hasher = create_autospec(HasherService, instance=True)
     hasher.hash_transaction.return_value = "mocked_tx_hash"
     return hasher
 
 
 @pytest.fixture
-def mock_signature_service():
+def mock_signature_service() -> Any:
     sig = create_autospec(SignatureService, instance=True)
     sig.verify_signature.return_value = True
     return sig
 
 
 @pytest.mark.asyncio
-async def test_submit_transaction_success(mock_tx_repo, mock_hasher, mock_signature_service, mock_node_repo):
+async def test_submit_transaction_success(
+    mock_tx_repo: Any, mock_hasher: Any, mock_signature_service: Any, mock_node_repo: Any
+) -> None:
     use_case = SubmitTransactionUseCase(mock_tx_repo, mock_hasher, mock_signature_service, mock_node_repo)
     request = TransactionCreateRequestDTO(
         sender_address="sender", receiver_address="receiver", amount=10.0, fee=1.0, signature="valid_sig"
@@ -47,7 +50,7 @@ async def test_submit_transaction_success(mock_tx_repo, mock_hasher, mock_signat
     mock_tx_repo.get_by_hash.return_value = None
     mock_tx_repo.get_balance.return_value = 100.0
 
-    async def mock_create(tx):
+    async def mock_create(tx: Any) -> Any:
         return tx
 
     mock_tx_repo.create.side_effect = mock_create
@@ -69,7 +72,9 @@ async def test_submit_transaction_success(mock_tx_repo, mock_hasher, mock_signat
 
 
 @pytest.mark.asyncio
-async def test_submit_transaction_insufficient_funds(mock_tx_repo, mock_hasher, mock_signature_service):
+async def test_submit_transaction_insufficient_funds(
+    mock_tx_repo: Any, mock_hasher: Any, mock_signature_service: Any
+) -> None:
     use_case = SubmitTransactionUseCase(mock_tx_repo, mock_hasher, mock_signature_service)
     request = TransactionCreateRequestDTO(
         sender_address="sender", receiver_address="receiver", amount=100.0, fee=1.0, signature="valid_sig"
@@ -83,7 +88,9 @@ async def test_submit_transaction_insufficient_funds(mock_tx_repo, mock_hasher, 
 
 
 @pytest.mark.asyncio
-async def test_submit_transaction_already_exists(mock_tx_repo, mock_hasher, mock_signature_service):
+async def test_submit_transaction_already_exists(
+    mock_tx_repo: Any, mock_hasher: Any, mock_signature_service: Any
+) -> None:
     use_case = SubmitTransactionUseCase(mock_tx_repo, mock_hasher, mock_signature_service)
     request = TransactionCreateRequestDTO(
         sender_address="sender", receiver_address="receiver", amount=10.0, fee=1.0, signature="valid_sig"

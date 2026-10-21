@@ -9,6 +9,7 @@ from backend.app.application.dto.block import (
 )
 from backend.app.application.dto.transaction import TransactionResponseDTO
 from backend.app.application.use_cases.ledger.mine_block import MineBlockUseCase
+from backend.app.domain.entities.block import Block
 from backend.app.domain.entities.user import User
 from backend.app.infrastructure.consensus.pow_service import ProofOfWorkServiceImpl
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
@@ -19,6 +20,12 @@ from backend.app.presentation.dependencies.auth import get_current_user
 from backend.app.presentation.dependencies.database import DbSession
 
 router = APIRouter(prefix="/blocks", tags=["blocks"])
+
+
+def _stored_hash(block: Block) -> str:
+    # A block read from the database always has its hash; only a block being mined has none
+    assert block.block_hash is not None
+    return block.block_hash
 
 
 @router.get("", response_model=PaginatedBlockResponseDTO)
@@ -38,7 +45,7 @@ async def get_blocks(
             previous_hash=b.previous_hash,
             timestamp=b.timestamp,
             nonce=b.nonce,
-            block_hash=b.block_hash,
+            block_hash=_stored_hash(b),
             transaction_ids=b.transaction_ids,
         )
         for b in blocks
@@ -90,7 +97,7 @@ async def get_blocks_full(
                 previous_hash=b.previous_hash,
                 timestamp=b.timestamp,
                 nonce=b.nonce,
-                block_hash=b.block_hash,
+                block_hash=_stored_hash(b),
                 transactions=tx_dtos,
             )
         )

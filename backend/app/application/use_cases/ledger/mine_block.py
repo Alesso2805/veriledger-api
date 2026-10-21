@@ -22,7 +22,7 @@ class MineBlockUseCase:
         tx_repo: TransactionRepository,
         consensus_service: ConsensusService,
         hasher: HasherService,
-        node_repo: NodeRepository = None,
+        node_repo: NodeRepository | None = None,
     ):
         self.block_repo = block_repo
         self.tx_repo = tx_repo
@@ -62,6 +62,8 @@ class MineBlockUseCase:
         # Get latest block to find previous hash
         latest_block = await self.block_repo.get_latest_block()
         if latest_block:
+            # A stored block always has its hash; only a block being mined has none
+            assert latest_block.block_hash is not None
             previous_hash = latest_block.block_hash
             block_number = latest_block.block_number + 1
         else:

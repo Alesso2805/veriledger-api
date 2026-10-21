@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from backend.app.domain.entities.block import Block
 
@@ -21,5 +22,5 @@ class BlockRepository(ABC):
         pass
 
     @abstractmethod
-    async def replace_chain(self, new_chain_data: list[dict]) -> None:
+    async def replace_chain(self, new_chain_data: list[dict[str, Any]]) -> None:
         pass

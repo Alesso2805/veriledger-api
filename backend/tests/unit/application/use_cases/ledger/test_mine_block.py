@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import AsyncMock, create_autospec, patch
 
 import pytest
@@ -15,36 +16,38 @@ from backend.app.domain.ports.services.hashing import HasherService
 
 
 @pytest.fixture
-def mock_block_repo():
+def mock_block_repo() -> Any:
     return create_autospec(BlockRepository, instance=True)
 
 
 @pytest.fixture
-def mock_tx_repo():
+def mock_tx_repo() -> Any:
     return create_autospec(TransactionRepository, instance=True)
 
 
 @pytest.fixture
-def mock_consensus():
+def mock_consensus() -> Any:
     c = create_autospec(ConsensusService, instance=True)
     c.mine_block.return_value = (123, "new_block_hash")
     return c
 
 
 @pytest.fixture
-def mock_hasher():
+def mock_hasher() -> Any:
     h = create_autospec(HasherService, instance=True)
     h.hash_transaction.return_value = "coinbase_tx_hash"
     return h
 
 
 @pytest.fixture
-def mock_node_repo():
+def mock_node_repo() -> Any:
     return create_autospec(NodeRepository, instance=True)
 
 
 @pytest.mark.asyncio
-async def test_mine_block_success(mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher, mock_node_repo):
+async def test_mine_block_success(
+    mock_block_repo: Any, mock_tx_repo: Any, mock_consensus: Any, mock_hasher: Any, mock_node_repo: Any
+) -> None:
     use_case = MineBlockUseCase(mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher, mock_node_repo)
 
     pending_tx = Transaction(

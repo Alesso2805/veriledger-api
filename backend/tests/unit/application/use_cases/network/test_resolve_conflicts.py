@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, create_autospec, patch
 
 import pytest
@@ -9,17 +10,17 @@ from backend.app.domain.ports.repositories.node_repository import NodeRepository
 
 
 @pytest.fixture
-def mock_node_repo():
+def mock_node_repo() -> Any:
     return create_autospec(NodeRepository, instance=True)
 
 
 @pytest.fixture
-def mock_block_repo():
+def mock_block_repo() -> Any:
     return create_autospec(BlockRepository, instance=True)
 
 
 @pytest.mark.asyncio
-async def test_resolve_conflicts_no_replacement(mock_node_repo, mock_block_repo):
+async def test_resolve_conflicts_no_replacement(mock_node_repo: Any, mock_block_repo: Any) -> None:
     use_case = ResolveConflictsUseCase(mock_node_repo, mock_block_repo)
 
     mock_node_repo.get_all.return_value = [Node(id="1", url="http://test", status="ACTIVE")]
@@ -39,7 +40,7 @@ async def test_resolve_conflicts_no_replacement(mock_node_repo, mock_block_repo)
 
 
 @pytest.mark.asyncio
-async def test_resolve_conflicts_replacement(mock_node_repo, mock_block_repo):
+async def test_resolve_conflicts_replacement(mock_node_repo: Any, mock_block_repo: Any) -> None:
     use_case = ResolveConflictsUseCase(mock_node_repo, mock_block_repo)
 
     mock_node_repo.get_all.return_value = [Node(id="1", url="http://test", status="ACTIVE")]
