@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import create_autospec
 
 import pytest
@@ -7,12 +8,12 @@ from backend.app.domain.ports.repositories.transaction_repository import Transac
 
 
 @pytest.fixture
-def mock_tx_repo():
+def mock_tx_repo() -> Any:
     return create_autospec(TransactionRepository, instance=True)
 
 
 @pytest.mark.asyncio
-async def test_get_balance_success(mock_tx_repo):
+async def test_get_balance_success(mock_tx_repo: Any) -> None:
     use_case = GetBalanceUseCase(mock_tx_repo)
 
     mock_tx_repo.get_balance.return_value = 100.50

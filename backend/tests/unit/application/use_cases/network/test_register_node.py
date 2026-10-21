@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import create_autospec
 
 import pytest
@@ -9,18 +10,18 @@ from backend.app.domain.ports.repositories.node_repository import NodeRepository
 
 
 @pytest.fixture
-def mock_node_repo():
+def mock_node_repo() -> Any:
     return create_autospec(NodeRepository, instance=True)
 
 
 @pytest.mark.asyncio
-async def test_register_node_success(mock_node_repo):
+async def test_register_node_success(mock_node_repo: Any) -> None:
     use_case = RegisterNodeUseCase(mock_node_repo)
     request = NodeCreateRequestDTO(url="http://new-node:8000")
 
     mock_node_repo.get_by_url.return_value = None
 
-    async def mock_create(node):
+    async def mock_create(node: Any) -> Any:
         return node
 
     mock_node_repo.create.side_effect = mock_create
@@ -33,7 +34,7 @@ async def test_register_node_success(mock_node_repo):
 
 
 @pytest.mark.asyncio
-async def test_register_node_already_exists(mock_node_repo):
+async def test_register_node_already_exists(mock_node_repo: Any) -> None:
     use_case = RegisterNodeUseCase(mock_node_repo)
     request = NodeCreateRequestDTO(url="http://new-node:8000")
 

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import create_autospec
 
 import pytest
@@ -11,22 +12,22 @@ from backend.app.domain.ports.services.security import PasswordHasher, TokenServ
 
 
 @pytest.fixture
-def mock_user_repo():
+def mock_user_repo() -> Any:
     return create_autospec(UserRepository, instance=True)
 
 
 @pytest.fixture
-def mock_password_hasher():
+def mock_password_hasher() -> Any:
     return create_autospec(PasswordHasher, instance=True)
 
 
 @pytest.fixture
-def mock_token_service():
+def mock_token_service() -> Any:
     return create_autospec(TokenService, instance=True)
 
 
 @pytest.mark.asyncio
-async def test_login_success(mock_user_repo, mock_password_hasher, mock_token_service):
+async def test_login_success(mock_user_repo: Any, mock_password_hasher: Any, mock_token_service: Any) -> None:
     use_case = LoginUseCase(mock_user_repo, mock_password_hasher, mock_token_service)
 
     now = datetime.now(UTC)
@@ -47,7 +48,7 @@ async def test_login_success(mock_user_repo, mock_password_hasher, mock_token_se
 
 
 @pytest.mark.asyncio
-async def test_login_invalid_email(mock_user_repo, mock_password_hasher, mock_token_service):
+async def test_login_invalid_email(mock_user_repo: Any, mock_password_hasher: Any, mock_token_service: Any) -> None:
     use_case = LoginUseCase(mock_user_repo, mock_password_hasher, mock_token_service)
 
     mock_user_repo.get_by_email.return_value = None
@@ -59,7 +60,7 @@ async def test_login_invalid_email(mock_user_repo, mock_password_hasher, mock_to
 
 
 @pytest.mark.asyncio
-async def test_login_invalid_password(mock_user_repo, mock_password_hasher, mock_token_service):
+async def test_login_invalid_password(mock_user_repo: Any, mock_password_hasher: Any, mock_token_service: Any) -> None:
     use_case = LoginUseCase(mock_user_repo, mock_password_hasher, mock_token_service)
 
     now = datetime.now(UTC)

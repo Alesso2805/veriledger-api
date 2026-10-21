@@ -4,7 +4,7 @@ from backend.app.application.use_cases.wallet.generate_wallet import GenerateWal
 from backend.app.domain.ports.services.wallet import WalletService
 
 
-def test_generate_wallet_success():
+def test_generate_wallet_success() -> None:
     mock_wallet_service = create_autospec(WalletService, instance=True)
     mock_wallet_service.generate_key_pair.return_value = ("pub_key", "priv_key")
 

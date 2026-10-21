@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import create_autospec
 
 import pytest
@@ -11,25 +12,25 @@ from backend.app.domain.ports.services.security import PasswordHasher
 
 
 @pytest.fixture
-def mock_user_repo():
+def mock_user_repo() -> Any:
     return create_autospec(UserRepository, instance=True)
 
 
 @pytest.fixture
-def mock_password_hasher():
+def mock_password_hasher() -> Any:
     hasher = create_autospec(PasswordHasher, instance=True)
     hasher.hash_password.return_value = "hashed_password"
     return hasher
 
 
 @pytest.mark.asyncio
-async def test_register_user_success(mock_user_repo, mock_password_hasher):
+async def test_register_user_success(mock_user_repo: Any, mock_password_hasher: Any) -> None:
     use_case = RegisterUserUseCase(mock_user_repo, mock_password_hasher)
 
     request = UserCreateDTO(email="new@test.com", password="password123", role=UserRole.VIEWER)
     mock_user_repo.get_by_email.return_value = None
 
-    async def mock_save(user):
+    async def mock_save(user: Any) -> Any:
         return user
 
     mock_user_repo.save.side_effect = mock_save
@@ -44,7 +45,7 @@ async def test_register_user_success(mock_user_repo, mock_password_hasher):
 
 
 @pytest.mark.asyncio
-async def test_register_user_already_exists(mock_user_repo, mock_password_hasher):
+async def test_register_user_already_exists(mock_user_repo: Any, mock_password_hasher: Any) -> None:
     use_case = RegisterUserUseCase(mock_user_repo, mock_password_hasher)
 
     request = UserCreateDTO(email="existing@test.com", password="password123", role=UserRole.VIEWER)
