@@ -295,7 +295,7 @@ veriledger-api/
 ├── .python-version               # 3.12.13, read by uv locally and in CI
 ├── .pre-commit-config.yaml       # Ruff hooks, same version as uv.lock
 ├── CLAUDE.md
-├── CHANGELOG.md                  # VLA-30
+├── CHANGELOG.md                  # Keep a Changelog; 1.0.0 (VLA-30)
 └── README.md
 ```
 
