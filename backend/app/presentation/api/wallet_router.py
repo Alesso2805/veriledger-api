@@ -1,8 +1,9 @@
 from fastapi import APIRouter
 
-from backend.app.application.dto.wallet import BalanceResponseDTO, WalletKeyPairDTO
+from backend.app.application.dto.wallet import BalanceResponseDTO, NonceResponseDTO, WalletKeyPairDTO
 from backend.app.application.use_cases.wallet.generate_wallet import GenerateWalletUseCase
 from backend.app.application.use_cases.wallet.get_balance import GetBalanceUseCase
+from backend.app.application.use_cases.wallet.get_next_nonce import GetNextNonceUseCase
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.security.ed25519_service import Ed25519ServiceImpl
 from backend.app.presentation.dependencies.database import DbSession
@@ -31,3 +32,12 @@ async def get_balance(
     use_case = GetBalanceUseCase(tx_repo)
     balance = await use_case.execute(address)
     return BalanceResponseDTO(address=address, balance=balance)
+
+
+@router.get("/{address}/nonce", response_model=NonceResponseDTO)
+async def get_next_nonce(
+    address: str,
+    db: DbSession,
+) -> NonceResponseDTO:
+    nonce = await GetNextNonceUseCase(TransactionRepositoryImpl(db)).execute(address)
+    return NonceResponseDTO(address=address, nonce=nonce)

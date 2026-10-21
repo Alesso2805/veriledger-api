@@ -8,6 +8,7 @@ from backend.app.application.dto.transaction import TransactionCreateRequestDTO
 from backend.app.application.use_cases.ledger.submit_transaction import SubmitTransactionUseCase
 from backend.app.domain.entities.node import Node
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
+from backend.app.domain.errors import NonceConflictError
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.hashing import HasherService
@@ -48,10 +49,12 @@ async def test_submit_transaction_success(
         receiver_address="receiver",
         amount="10.00000000",
         fee="1.00000000",
+        nonce=1,
         signature="valid_sig",
     )
 
     mock_tx_repo.get_by_hash.return_value = None
+    mock_tx_repo.get_last_nonce.return_value = None
     mock_tx_repo.get_balance.return_value = 100.0
 
     async def mock_create(tx: Any) -> Any:
@@ -67,6 +70,7 @@ async def test_submit_transaction_success(
     assert result.amount == 10.0
     assert result.tx_hash == "mocked_tx_hash"
     assert result.status == TransactionStatus.PENDING
+    assert result.nonce == 1
     mock_tx_repo.create.assert_called_once()
 
     # The router sends it after the response; execute only reads the peers while the session is open
@@ -85,10 +89,12 @@ async def test_submit_transaction_insufficient_funds(
         receiver_address="receiver",
         amount="100.00000000",
         fee="1.00000000",
+        nonce=1,
         signature="valid_sig",
     )
 
     mock_tx_repo.get_by_hash.return_value = None
+    mock_tx_repo.get_last_nonce.return_value = None
     mock_tx_repo.get_balance.return_value = 50.0
 
     with pytest.raises(ValueError, match="Insufficient funds"):
@@ -105,6 +111,7 @@ async def test_submit_transaction_already_exists(
         receiver_address="receiver",
         amount="10.00000000",
         fee="1.00000000",
+        nonce=1,
         signature="valid_sig",
     )
 
@@ -123,3 +130,21 @@ async def test_submit_transaction_already_exists(
     result = await use_case.execute(request)
     assert result == existing_tx
     mock_tx_repo.get_balance.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("last_nonce", "sent", "expected"), [(3, 3, 4), (3, 5, 4), (None, 2, 1)])
+async def test_a_nonce_that_is_not_the_next_one_is_a_conflict(
+    mock_tx_repo: Any, mock_hasher: Any, mock_signature_service: Any, last_nonce: int | None, sent: int, expected: int
+) -> None:
+    # Reused, skipped, and a first transaction that does not start at 1
+    use_case = SubmitTransactionUseCase(mock_tx_repo, mock_hasher, mock_signature_service)
+    request = TransactionCreateRequestDTO(
+        sender_address="sender", receiver_address="receiver", amount="1.00000000", nonce=sent, signature="valid_sig"
+    )
+    mock_tx_repo.get_by_hash.return_value = None
+    mock_tx_repo.get_last_nonce.return_value = last_nonce
+
+    with pytest.raises(NonceConflictError, match=f"the next is {expected}"):
+        await use_case.execute(request)
+    mock_tx_repo.create.assert_not_called()

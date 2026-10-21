@@ -11,6 +11,7 @@ from backend.app.application.use_cases.ledger.get_transaction import GetTransact
 from backend.app.application.use_cases.ledger.list_pending_transactions import ListPendingTransactionsUseCase
 from backend.app.application.use_cases.ledger.submit_transaction import SubmitTransactionUseCase
 from backend.app.domain.entities.user import User
+from backend.app.domain.errors import NonceConflictError
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
@@ -38,6 +39,8 @@ async def submit_transaction(
 
     try:
         transaction = await use_case.execute(request)
+    except NonceConflictError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 

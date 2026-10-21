@@ -1,5 +1,3 @@
-from typing import Any
-
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -9,22 +7,19 @@ from backend.tests.integration.conftest import VECTORS, fund
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.parametrize("vector", VECTORS, ids=[vector["name"] for vector in VECTORS])
-async def test_a_vector_signed_with_noble_is_accepted(
-    async_client: AsyncClient,
-    postgres: async_sessionmaker[AsyncSession],
-    admin_headers: dict[str, str],
-    vector: dict[str, Any],
+async def test_every_vector_signed_with_noble_is_accepted_in_order(
+    async_client: AsyncClient, postgres: async_sessionmaker[AsyncSession], admin_headers: dict[str, str]
 ) -> None:
-    fields = vector["fields"]
-    await fund(async_client, admin_headers, fields["sender_address"])
+    for sender in {vector["fields"]["sender_address"] for vector in VECTORS}:
+        await fund(async_client, admin_headers, sender)
 
-    response = await async_client.post(
-        "/transactions", json={**fields, "signature": vector["signature"]}, headers=admin_headers
-    )
-
-    assert response.status_code == 201
-    assert response.json()["status"] == "PENDING"
+    # In file order, since each sender's nonces follow one another (alice signs 1, then 2)
+    for vector in VECTORS:
+        response = await async_client.post(
+            "/transactions", json={**vector["fields"], "signature": vector["signature"]}, headers=admin_headers
+        )
+        assert response.status_code == 201, vector["name"]
+        assert (response.json()["status"], response.json()["nonce"]) == ("PENDING", vector["fields"]["nonce"])
 
 
 async def test_a_vector_with_a_changed_amount_is_rejected(
