@@ -43,3 +43,11 @@ async def test_same_email_twice_is_rejected(
             select(func.count()).select_from(UserModel).where(UserModel.email == NEW_USER["email"])
         )
     assert count == 1
+
+
+async def test_a_wrong_password_is_refused(async_client: AsyncClient, admin_headers: dict[str, str]) -> None:
+    response = await async_client.post(
+        "/auth/login", data={"username": "admin@example.com", "password": "not-the-password"}
+    )
+
+    assert (response.status_code, response.json()["detail"]) == (401, "Invalid credentials")
