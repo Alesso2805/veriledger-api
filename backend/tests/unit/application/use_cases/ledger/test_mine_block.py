@@ -13,13 +13,16 @@ from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.services.consensus import ConsensusService
 from backend.app.domain.ports.services.hashing import HasherService
 
+
 @pytest.fixture
 def mock_block_repo():
     return create_autospec(BlockRepository, instance=True)
 
+
 @pytest.fixture
 def mock_tx_repo():
     return create_autospec(TransactionRepository, instance=True)
+
 
 @pytest.fixture
 def mock_consensus():
@@ -27,31 +30,41 @@ def mock_consensus():
     c.mine_block.return_value = (123, "new_block_hash")
     return c
 
+
 @pytest.fixture
 def mock_hasher():
     h = create_autospec(HasherService, instance=True)
     h.hash_transaction.return_value = "coinbase_tx_hash"
     return h
 
+
 @pytest.fixture
 def mock_node_repo():
     return create_autospec(NodeRepository, instance=True)
 
+
 @pytest.mark.asyncio
 async def test_mine_block_success(mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher, mock_node_repo):
     use_case = MineBlockUseCase(mock_block_repo, mock_tx_repo, mock_consensus, mock_hasher, mock_node_repo)
-    
+
     pending_tx = Transaction(
-        id="tx1", sender_address="s", receiver_address="r", amount=10.0, fee=2.0, status=TransactionStatus.PENDING, timestamp=datetime.now(timezone.utc), signature="sig"
+        id="tx1",
+        sender_address="s",
+        receiver_address="r",
+        amount=10.0,
+        fee=2.0,
+        status=TransactionStatus.PENDING,
+        timestamp=datetime.now(timezone.utc),
+        signature="sig",
     )
     mock_tx_repo.get_by_status.return_value = [pending_tx]
-    
+
     last_block = Block(
         id="b1", block_number=5, previous_hash="prev", timestamp=datetime.now(timezone.utc), transaction_ids=[]
     )
     last_block.block_hash = "last_hash"
     mock_block_repo.get_latest_block.return_value = last_block
-    
+
     mock_node_repo.get_all.return_value = [Node(id="1", url="http://peer", status="ACTIVE")]
 
     result = await use_case.execute("miner1")

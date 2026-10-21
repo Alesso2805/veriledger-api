@@ -41,9 +41,7 @@ class BlockRepositoryImpl(BlockRepository):
 
     async def get_by_hash(self, block_hash: str) -> Optional[Block]:
         stmt = (
-            select(BlockModel)
-            .where(BlockModel.block_hash == block_hash)
-            .options(selectinload(BlockModel.transactions))
+            select(BlockModel).where(BlockModel.block_hash == block_hash).options(selectinload(BlockModel.transactions))
         )
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
@@ -70,11 +68,13 @@ class BlockRepositoryImpl(BlockRepository):
         from datetime import datetime
 
         # 1. Delete all blocks (this will set block_id to NULL for txs if no cascade, so we delete txs too)
-        await self._session.execute(delete(TransactionModel).where(TransactionModel.status == TransactionStatus.CONFIRMED))
+        await self._session.execute(
+            delete(TransactionModel).where(TransactionModel.status == TransactionStatus.CONFIRMED)
+        )
         await self._session.execute(delete(BlockModel))
-        
+
         # 2. Re-insert the new chain
-        # Note: We process them from oldest to newest if the list is newest first, wait. 
+        # Note: We process them from oldest to newest if the list is newest first, wait.
         # Usually list from /blocks is newest first (desc). So we just insert them as they are.
         for block_data in new_chain_data:
             block = BlockModel(
@@ -86,7 +86,7 @@ class BlockRepositoryImpl(BlockRepository):
                 block_hash=block_data["block_hash"],
             )
             self._session.add(block)
-            
+
             for tx_data in block_data.get("transactions", []):
                 tx = TransactionModel(
                     id=tx_data["id"],
@@ -101,7 +101,7 @@ class BlockRepositoryImpl(BlockRepository):
                     block_id=block.id,
                 )
                 self._session.add(tx)
-        
+
         await self._session.flush()
 
     def _model_to_entity(self, model: BlockModel) -> Block:

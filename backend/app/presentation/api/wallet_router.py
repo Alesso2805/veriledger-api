@@ -14,12 +14,12 @@ router = APIRouter(prefix="/wallets", tags=["wallets"])
 async def generate_wallet() -> WalletKeyPairDTO:
     """
     Utility endpoint for testing. Generates a new Ed25519 key pair.
-    The private key should ideally never leave the client's device, 
+    The private key should ideally never leave the client's device,
     but we provide this for testing purposes.
     """
     wallet_service = Ed25519ServiceImpl()
     use_case = GenerateWalletUseCase(wallet_service)
-    
+
     return use_case.execute()
 
 

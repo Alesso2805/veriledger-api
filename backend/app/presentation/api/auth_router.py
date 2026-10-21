@@ -14,9 +14,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenDTO)
-async def login(
-    db: DbSession, form_data: OAuth2PasswordRequestForm = Depends()
-) -> TokenDTO:
+async def login(db: DbSession, form_data: OAuth2PasswordRequestForm = Depends()) -> TokenDTO:
     user_repo = UserRepositoryImpl(db)
     password_hasher = PasswordHasherImpl()
     token_service = JWTTokenService()

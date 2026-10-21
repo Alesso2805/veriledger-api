@@ -5,16 +5,13 @@ from backend.app.domain.entities.node import Node
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.infrastructure.models.node_model import NodeModel
 
+
 class NodeRepositoryImpl(NodeRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
 
     async def create(self, node: Node) -> Node:
-        model = NodeModel(
-            id=node.id,
-            url=node.url,
-            status=node.status
-        )
+        model = NodeModel(id=node.id, url=node.url, status=node.status)
         self._session.add(model)
         await self._session.flush()
         return node

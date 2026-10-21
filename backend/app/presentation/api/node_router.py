@@ -12,6 +12,7 @@ from backend.app.presentation.dependencies.database import DbSession
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
 
+
 @router.post("/register", response_model=NodeResponseDTO, status_code=status.HTTP_201_CREATED)
 async def register_node(
     request: NodeCreateRequestDTO,
@@ -20,12 +21,13 @@ async def register_node(
 ) -> NodeResponseDTO:
     node_repo = NodeRepositoryImpl(db)
     use_case = RegisterNodeUseCase(node_repo)
-    
+
     try:
         node = await use_case.execute(request)
         return NodeResponseDTO(id=node.id, url=node.url, status=node.status)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.get("", response_model=List[NodeResponseDTO])
 async def get_nodes(
@@ -36,6 +38,7 @@ async def get_nodes(
     nodes = await node_repo.get_all()
     return [NodeResponseDTO(id=n.id, url=n.url, status=n.status) for n in nodes]
 
+
 @router.post("/resolve")
 async def resolve_conflicts(
     db: DbSession,
@@ -44,9 +47,6 @@ async def resolve_conflicts(
     node_repo = NodeRepositoryImpl(db)
     block_repo = BlockRepositoryImpl(db)
     use_case = ResolveConflictsUseCase(node_repo, block_repo)
-    
+
     replaced = await use_case.execute()
-    return {
-        "message": "Our chain was replaced" if replaced else "Our chain is authoritative",
-        "replaced": replaced
-    }
+    return {"message": "Our chain was replaced" if replaced else "Our chain is authoritative", "replaced": replaced}

@@ -15,6 +15,7 @@ from backend.app.application.dto.block import BlockResponseDTO, PaginatedBlockRe
 
 router = APIRouter(prefix="/blocks", tags=["blocks"])
 
+
 @router.get("", response_model=PaginatedBlockResponseDTO)
 async def get_blocks(
     db: DbSession,
@@ -24,7 +25,7 @@ async def get_blocks(
 ) -> PaginatedBlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
     blocks = await block_repo.get_all_blocks(skip=skip, limit=limit)
-    
+
     items = [
         BlockResponseDTO(
             id=b.id,
@@ -37,16 +38,18 @@ async def get_blocks(
         )
         for b in blocks
     ]
-    
+
     return PaginatedBlockResponseDTO(
         items=items,
-        total=len(items), # Simplified total for now
+        total=len(items),  # Simplified total for now
         page=skip // limit + 1 if limit > 0 else 1,
-        size=limit
+        size=limit,
     )
+
 
 from backend.app.application.dto.transaction import TransactionResponseDTO
 from backend.app.application.dto.block import FullBlockResponseDTO, PaginatedFullBlockResponseDTO
+
 
 @router.get("/full", response_model=PaginatedFullBlockResponseDTO)
 async def get_blocks_full(
@@ -57,10 +60,10 @@ async def get_blocks_full(
 ) -> PaginatedFullBlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
     tx_repo = TransactionRepositoryImpl(db)
-    
+
     blocks = await block_repo.get_all_blocks(skip=skip, limit=limit)
     items = []
-    
+
     for b in blocks:
         txs = await tx_repo.get_by_block_id(b.id)
         tx_dtos = [
@@ -78,23 +81,23 @@ async def get_blocks_full(
             )
             for t in txs
         ]
-        
-        items.append(FullBlockResponseDTO(
-            id=b.id,
-            block_number=b.block_number,
-            previous_hash=b.previous_hash,
-            timestamp=b.timestamp,
-            nonce=b.nonce,
-            block_hash=b.block_hash,
-            transactions=tx_dtos,
-        ))
-        
+
+        items.append(
+            FullBlockResponseDTO(
+                id=b.id,
+                block_number=b.block_number,
+                previous_hash=b.previous_hash,
+                timestamp=b.timestamp,
+                nonce=b.nonce,
+                block_hash=b.block_hash,
+                transactions=tx_dtos,
+            )
+        )
+
     return PaginatedFullBlockResponseDTO(
-        items=items,
-        total=len(items),
-        page=skip // limit + 1 if limit > 0 else 1,
-        size=limit
+        items=items, total=len(items), page=skip // limit + 1 if limit > 0 else 1, size=limit
     )
+
 
 @router.post("/mine", response_model=BlockResponseDTO)
 async def mine_block(

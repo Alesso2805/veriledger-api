@@ -72,8 +72,7 @@ class TransactionRepositoryImpl(TransactionRepository):
     async def get_balance(self, address: str) -> float:
         # Received amounts (where status is CONFIRMED)
         stmt_in = select(TransactionModel).where(
-            TransactionModel.receiver_address == address,
-            TransactionModel.status == TransactionStatus.CONFIRMED
+            TransactionModel.receiver_address == address, TransactionModel.status == TransactionStatus.CONFIRMED
         )
         res_in = await self._session.execute(stmt_in)
         incoming_txs = res_in.scalars().all()
@@ -82,7 +81,7 @@ class TransactionRepositoryImpl(TransactionRepository):
         # Sent amounts + fees (where status is PENDING or CONFIRMED to avoid double spend in mempool)
         stmt_out = select(TransactionModel).where(
             TransactionModel.sender_address == address,
-            TransactionModel.status.in_([TransactionStatus.CONFIRMED, TransactionStatus.PENDING])
+            TransactionModel.status.in_([TransactionStatus.CONFIRMED, TransactionStatus.PENDING]),
         )
         res_out = await self._session.execute(stmt_out)
         outgoing_txs = res_out.scalars().all()

@@ -22,6 +22,6 @@ class TransactionModel(BaseModel):
     signature: Mapped[str] = mapped_column(String)
     tx_hash: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True, nullable=True)
     payload: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    
+
     block_id: Mapped[Optional[str]] = mapped_column(ForeignKey("blocks.id"), nullable=True)
     block = relationship("BlockModel", back_populates="transactions")

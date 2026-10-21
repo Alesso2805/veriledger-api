@@ -25,7 +25,7 @@ async def submit_transaction(
     node_repo = NodeRepositoryImpl(db)
     hasher = SHA256HasherImpl()
     signature_service = Ed25519ServiceImpl()
-    
+
     use_case = SubmitTransactionUseCase(tx_repo, hasher, signature_service, node_repo)
 
     try:
@@ -49,6 +49,7 @@ async def submit_transaction(
         payload=transaction.payload,
         block_id=transaction.block_id,
     )
+
 
 @router.get("/{tx_hash}", response_model=TransactionResponseDTO)
 async def get_transaction(
