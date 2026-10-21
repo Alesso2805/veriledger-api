@@ -195,6 +195,10 @@
       },
       "HealthCheckResponse": {
         "properties": {
+          "database": {
+            "title": "Database",
+            "type": "string"
+          },
           "demo_mode": {
             "title": "Demo Mode",
             "type": "boolean"
@@ -211,7 +215,8 @@
         "required": [
           "status",
           "environment",
-          "demo_mode"
+          "demo_mode",
+          "database"
         ],
         "title": "HealthCheckResponse",
         "type": "object"
@@ -1072,6 +1077,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheckResponse"
+                }
+              }
+            },
+            "description": "The database does not answer"
           }
         },
         "summary": "Health Check",

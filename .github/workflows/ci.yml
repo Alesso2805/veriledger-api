@@ -75,6 +75,21 @@ jobs:
     name: image
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      # /health is a readiness check since VLA-26, so the healthcheck needs a database that answers
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veriledger
+          POSTGRES_PASSWORD: veriledger
+          POSTGRES_DB: veriledger
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U veriledger -d veriledger"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -87,10 +102,11 @@ jobs:
       - name: It runs as a non-root user
         run: test "$(docker run --rm veriledger-api:ci id -u)" = 10001
 
-      - name: Its healthcheck turns healthy
-        # /health needs no database, so a URL that nothing connects to is enough
+      - name: Its healthcheck turns healthy once the database answers
+        # The host network reaches the job's PostgreSQL service on 127.0.0.1
         run: |
-          docker run -d --name api -e DATABASE_URL=postgresql+asyncpg://unused:unused@localhost/unused veriledger-api:ci
+          docker run -d --name api --network host \
+            -e DATABASE_URL=postgresql+asyncpg://veriledger:veriledger@127.0.0.1:5432/veriledger veriledger-api:ci
           for i in $(seq 1 30); do
             status=$(docker inspect --format '{{.State.Health.Status}}' api)
             [ "$status" = healthy ] && exit 0
@@ -99,6 +115,11 @@ jobs:
           docker logs api
           echo "the healthcheck says $status"
           exit 1
+
+      - name: Its log lines are JSON, with a request id
+        run: |
+          curl -fsS -H 'X-Request-ID: ci-check-1' http://127.0.0.1:8000/health
+          docker logs api 2>&1 | grep '"request_id": "ci-check-1"' | python3 -c 'import json, sys; [json.loads(line) for line in sys.stdin]'
 
   compose:
     name: compose
