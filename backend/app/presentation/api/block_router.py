@@ -28,6 +28,32 @@ def _stored_hash(block: Block) -> str:
     return block.block_hash
 
 
+def _block_response(block: Block) -> BlockResponseDTO:
+    return BlockResponseDTO(
+        id=block.id,
+        block_number=block.block_number,
+        previous_hash=block.previous_hash,
+        timestamp=block.timestamp,
+        nonce=block.nonce,
+        block_hash=_stored_hash(block),
+        transaction_ids=block.transaction_ids,
+        transaction_hashes=block.transaction_hashes,
+    )
+
+
+async def _full_block_response(block: Block, tx_repo: TransactionRepositoryImpl) -> FullBlockResponseDTO:
+    transactions = await tx_repo.get_by_block_id(block.id)
+    return FullBlockResponseDTO(
+        id=block.id,
+        block_number=block.block_number,
+        previous_hash=block.previous_hash,
+        timestamp=block.timestamp,
+        nonce=block.nonce,
+        block_hash=_stored_hash(block),
+        transactions=[TransactionResponseDTO.from_entity(transaction, block) for transaction in transactions],
+    )
+
+
 @router.get("", response_model=PaginatedBlockResponseDTO)
 async def get_blocks(
     db: DbSession,
@@ -37,24 +63,9 @@ async def get_blocks(
 ) -> PaginatedBlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
     blocks = await block_repo.get_all_blocks(skip=skip, limit=limit)
-
-    items = [
-        BlockResponseDTO(
-            id=b.id,
-            block_number=b.block_number,
-            previous_hash=b.previous_hash,
-            timestamp=b.timestamp,
-            nonce=b.nonce,
-            block_hash=_stored_hash(b),
-            transaction_ids=b.transaction_ids,
-        )
-        for b in blocks
-    ]
-
     return PaginatedBlockResponseDTO(
-        items=items,
-        # Counts this page, not the chain; VLA-20 returns the real row count
-        total=len(items),
+        items=[_block_response(block) for block in blocks],
+        total=await block_repo.count(),
         page=skip // limit + 1 if limit > 0 else 1,
         size=limit,
     )
@@ -69,43 +80,26 @@ async def get_blocks_full(
 ) -> PaginatedFullBlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
     tx_repo = TransactionRepositoryImpl(db)
-
     blocks = await block_repo.get_all_blocks(skip=skip, limit=limit)
-    items = []
-
-    for b in blocks:
-        txs = await tx_repo.get_by_block_id(b.id)
-        tx_dtos = [
-            TransactionResponseDTO(
-                id=t.id,
-                sender_address=t.sender_address,
-                receiver_address=t.receiver_address,
-                amount=t.amount,
-                fee=t.fee,
-                status=t.status,
-                timestamp=t.timestamp,
-                signature=t.signature,
-                tx_hash=t.tx_hash,
-                block_id=t.block_id,
-            )
-            for t in txs
-        ]
-
-        items.append(
-            FullBlockResponseDTO(
-                id=b.id,
-                block_number=b.block_number,
-                previous_hash=b.previous_hash,
-                timestamp=b.timestamp,
-                nonce=b.nonce,
-                block_hash=_stored_hash(b),
-                transactions=tx_dtos,
-            )
-        )
-
     return PaginatedFullBlockResponseDTO(
-        items=items, total=len(items), page=skip // limit + 1 if limit > 0 else 1, size=limit
+        items=[await _full_block_response(block, tx_repo) for block in blocks],
+        total=await block_repo.count(),
+        page=skip // limit + 1 if limit > 0 else 1,
+        size=limit,
     )
+
+
+# Declared after /full, so that "full" is not taken for a block hash
+@router.get("/{block_hash}", response_model=FullBlockResponseDTO)
+async def get_block(
+    block_hash: str,
+    db: DbSession,
+    current_user: User = Depends(get_current_user),
+) -> FullBlockResponseDTO:
+    block = await BlockRepositoryImpl(db).get_by_hash(block_hash)
+    if block is None:
+        raise HTTPException(status_code=404, detail="Block not found")
+    return await _full_block_response(block, TransactionRepositoryImpl(db))
 
 
 @router.post("/mine", response_model=BlockResponseDTO)

@@ -101,6 +101,7 @@ class MineBlockUseCase:
             nonce=block.nonce,
             block_hash=block.block_hash,
             transaction_ids=block.transaction_ids,
+            transaction_hashes=[tx.tx_hash for tx in all_txs_for_block if tx.tx_hash is not None],
         )
 
     async def broadcast_block(self) -> None:

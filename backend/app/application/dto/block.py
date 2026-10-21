@@ -17,6 +17,7 @@ class BlockResponseDTO(BaseModel):
     nonce: int
     block_hash: str
     transaction_ids: list[str]
+    transaction_hashes: list[str]
 
 
 class FullBlockResponseDTO(BaseModel):
