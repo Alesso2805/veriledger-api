@@ -1,0 +1,5 @@
+# Commits that only reformat code; git blame skips them.
+# GitHub reads this file. Locally: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style: format backend with ruff format (VLA-12)
+5ef2b7e67ba784105de0e5f8c74ed74059147da0
