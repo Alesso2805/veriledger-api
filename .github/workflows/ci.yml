@@ -58,6 +58,9 @@ jobs:
       - name: Mypy strict
         run: uv run mypy backend/app backend/tests
 
+      - name: Layer contracts (AR-03, AR-04, AR-05)
+        run: uv run lint-imports
+
       - name: Import the app with runtime dependencies only
         # asyncpg is a runtime dependency and aiosqlite is not, so this needs a PostgreSQL URL; nothing connects to it
         env:

@@ -49,7 +49,7 @@ uv run alembic -c backend/alembic.ini upgrade head
 ```
 Seed the initial database (e.g., admin user):
 ```bash
-uv run python -m backend.app.infrastructure.seed
+uv run python -m backend.app.cli.seed
 ```
 
 ### 4. Run the Application
