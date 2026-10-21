@@ -44,7 +44,7 @@ Status: **Built** (exists on `main`, see the audit for its defects), **Planned**
 | Mining | Reward and fees | Coinbase from `SYSTEM` of `MINING_REWARD` (50 by default) + the block's fees to the miner | Built (VLA-06); the reward is a setting since VLA-17 |
 | Mining | Atomic and non-blocking | One DB transaction per block; PoW off the event loop; difficulty and reward in settings | Built (VLA-17): one transaction per request (ADR-0007), 409 for a taken height, the PoW in a worker thread (ADR-0008) |
 | Network | Peers | Register, list; new transactions and blocks are broadcast to peers, which take the shared peer token in place of a user | Built (VLA-07); the peer token and safe peer URLs since VLA-19 |
-| Network | Consensus | `POST /nodes/resolve` adopts the longest valid chain among peers | Built (VLA-07) with a structural check only; full validation in VLA-18 |
+| Network | Consensus | `POST /nodes/resolve` adopts the longest valid chain among peers | Built (VLA-07); a peer's blocks are validated since VLA-18 (structure and Proof of Work), its transactions with VLA-18's second part |
 | Operations | Health | `GET /health` | Built (VLA-01); database check in VLA-26 |
 | Operations | Deployment | One server, Docker Compose, Caddy, HTTPS | The image and Compose are built (VLA-22, VLA-23); the server, Caddy and HTTPS come with VLA-27 |
 
@@ -174,7 +174,7 @@ The active count is read from the database. The other two are counted by a slidi
 
 **Block hash and Proof of Work.** SHA-256 of sorted-key JSON over `id`, `block_number`, `previous_hash`, `timestamp`, `nonce` and the sorted `transaction_ids`. A block is valid when its hash starts with `MINING_DIFFICULTY` hex zeros (4 by default, from 1 to 64). The coinbase pays `MINING_REWARD` (50 by default, not negative) plus the block's fees. The nodes of one network need the same two values, since a peer's blocks are checked against ours (VLA-18).
 
-**Valid chain (target, VLA-18).** Starts at a genesis block with `previous_hash` of 64 zeros; each block's hash recomputes and meets the difficulty; each `previous_hash` equals the previous block's hash; block numbers are consecutive; exactly one coinbase per block of `MINING_REWARD` + its fees; every other transaction has a valid signature, an unused nonce and a covered balance at that point of the chain.
+**Valid chain (VLA-18).** `ChainValidator` (`domain/chain_validator.py`) reads a chain as `/blocks/full` serves it, from the genesis up. Resolve adopts the longest chain that breaks no rule, and logs the first rule each refused chain broke. Built: it starts at a genesis block with `previous_hash` of 64 zeros; block numbers are consecutive; each `previous_hash` equals the previous block's hash; each block's hash recomputes from its contents and meets this node's difficulty. Planned (VLA-18's second part): exactly one coinbase per block of `MINING_REWARD` + its fees; every other transaction has a valid signature, an unused nonce and a covered balance at that point of the chain.
 
 ## Non-functional requirements and security
 
@@ -182,7 +182,7 @@ The active count is read from the database. The other two are counted by a slidi
 | --- | --- | --- |
 | Integrity | No transaction enters the mempool without a valid signature over the canonical message | Golden vectors and invalid-signature tests (VLA-15) |
 | Integrity | A captured request cannot be replayed | Replay test with the same body twice → 409 (VLA-16) |
-| Integrity | A peer cannot replace the chain with forged or tampered blocks | One test per rule of "Valid chain" (VLA-18) |
+| Integrity | A peer cannot replace the chain with forged or tampered blocks | One tampered chain per rule of › Valid chain in `test_chain_validator.py`; two running nodes adopt only a valid chain (`test_two_nodes.py`); the transaction rules with VLA-18's second part |
 | Atomicity | Mining writes coinbase, block and confirmations together or not at all | `test_mining.py`: a confirmation that fails after the block and the coinbase were flushed leaves nothing written (VLA-17) |
 | Concurrency | Two simultaneous mine requests never produce a duplicate `block_number` | `test_mining.py`: four simultaneous mines give consecutive blocks or 409, one coinbase each, and the pending transfer in one block; a stale latest block answers 409 (VLA-17) |
 | Availability | Mining does not block other requests | `test_mining.py`: with the Proof of Work held, `/health` answers first (VLA-17, ADR-0008) |

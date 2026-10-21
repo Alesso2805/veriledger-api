@@ -3,11 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from backend.app.application.dto.node import NodeCreateRequestDTO, NodeResponseDTO, ResolveConflictsResponseDTO
 from backend.app.application.use_cases.network.register_node import RegisterNodeUseCase
 from backend.app.application.use_cases.network.resolve_conflicts import ResolveConflictsUseCase
+from backend.app.core.config import settings
+from backend.app.domain.chain_validator import ChainValidator
 from backend.app.domain.entities.user import User, UserRole
 from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
 from backend.app.infrastructure.peers.resolving_peer_url_policy import ResolvingPeerUrlPolicy
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
+from backend.app.infrastructure.security.sha256_hasher import SHA256HasherImpl
 from backend.app.presentation.dependencies.auth import RequireRole, RequireRoleOrPeer
 from backend.app.presentation.dependencies.database import DbSession
 
@@ -47,7 +50,9 @@ async def resolve_conflicts(
 ) -> ResolveConflictsResponseDTO:
     node_repo = NodeRepositoryImpl(db)
     block_repo = BlockRepositoryImpl(db)
-    use_case = ResolveConflictsUseCase(node_repo, block_repo, HttpxPeerClient())
+    # A peer's blocks are checked against this node's own difficulty (SPEC › Valid chain)
+    validator = ChainValidator(SHA256HasherImpl(), difficulty=settings.mining_difficulty)
+    use_case = ResolveConflictsUseCase(node_repo, block_repo, HttpxPeerClient(), validator)
 
     replaced = await use_case.execute()
     message = "Our chain was replaced" if replaced else "Our chain is authoritative"
