@@ -58,6 +58,7 @@ pythonpath = ["."]
 python_version = "3.12"
 strict = true
 exclude = ["alembic"]
+plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = "asyncpg.*"
