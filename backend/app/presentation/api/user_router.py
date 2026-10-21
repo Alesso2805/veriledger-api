@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.application.dto.user import UserCreateDTO, UserResponseDTO
 from backend.app.application.use_cases.auth.register_user import RegisterUserUseCase
 from backend.app.domain.entities.user import User, UserRole
-from backend.app.infrastructure.database import get_db_session
 from backend.app.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
 from backend.app.infrastructure.security.password_hasher import PasswordHasherImpl
 from backend.app.presentation.dependencies.auth import RequireRole
+from backend.app.presentation.dependencies.database import DbSession
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -15,7 +14,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.post("", response_model=UserResponseDTO, status_code=status.HTTP_201_CREATED)
 async def create_user(
     data: UserCreateDTO,
-    db: AsyncSession = Depends(get_db_session),
+    db: DbSession,
     current_user: User = Depends(RequireRole([UserRole.ADMIN])),
 ) -> UserResponseDTO:
     user_repo = UserRepositoryImpl(db)

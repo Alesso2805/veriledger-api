@@ -1,16 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 
 from backend.app.application.dto.block import BlockResponseDTO
 from backend.app.application.use_cases.ledger.mine_block import MineBlockUseCase
 from backend.app.domain.entities.user import User
-from backend.app.infrastructure.database import get_db_session
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.infrastructure.security.sha256_hasher import SHA256HasherImpl
 from backend.app.infrastructure.consensus.pow_service import ProofOfWorkServiceImpl
 from backend.app.presentation.dependencies.auth import get_current_user
+from backend.app.presentation.dependencies.database import DbSession
 
 from backend.app.application.dto.block import BlockResponseDTO, PaginatedBlockResponseDTO, MineBlockRequestDTO
 
@@ -18,9 +17,9 @@ router = APIRouter(prefix="/blocks", tags=["blocks"])
 
 @router.get("", response_model=PaginatedBlockResponseDTO)
 async def get_blocks(
+    db: DbSession,
     skip: int = 0,
     limit: int = 100,
-    db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ) -> PaginatedBlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
@@ -51,9 +50,9 @@ from backend.app.application.dto.block import FullBlockResponseDTO, PaginatedFul
 
 @router.get("/full", response_model=PaginatedFullBlockResponseDTO)
 async def get_blocks_full(
+    db: DbSession,
     skip: int = 0,
     limit: int = 100,
-    db: AsyncSession = Depends(get_db_session),
     current_user: User = Depends(get_current_user),
 ) -> PaginatedFullBlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
@@ -100,7 +99,8 @@ async def get_blocks_full(
 @router.post("/mine", response_model=BlockResponseDTO)
 async def mine_block(
     request: MineBlockRequestDTO,
-    db: AsyncSession = Depends(get_db_session),
+    background_tasks: BackgroundTasks,
+    db: DbSession,
     current_user: User = Depends(get_current_user),
 ) -> BlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
@@ -113,6 +113,9 @@ async def mine_block(
 
     try:
         block = await use_case.execute(miner_address=request.miner_address)
-        return block
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # Background tasks run after the response, so peers only hear of the block once it is committed
+    background_tasks.add_task(use_case.broadcast_block)
+    return block

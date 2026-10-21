@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from backend.app.application.dto.transaction import TransactionCreateRequestDTO
 from backend.app.application.use_cases.ledger.submit_transaction import SubmitTransactionUseCase
+from backend.app.domain.entities.node import Node
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
@@ -49,16 +50,20 @@ async def test_submit_transaction_success(mock_tx_repo, mock_hasher, mock_signat
         return tx
     mock_tx_repo.create.side_effect = mock_create
     
-    with patch("asyncio.create_task") as mock_create_task:
-        result = await use_case.execute(request)
-        
-        assert result.sender_address == "sender"
-        assert result.amount == 10.0
-        assert result.tx_hash == "mocked_tx_hash"
-        assert result.status == TransactionStatus.PENDING
-        
-        mock_tx_repo.create.assert_called_once()
-        mock_create_task.assert_called_once()
+    mock_node_repo.get_all.return_value = [Node(id="1", url="http://peer", status="ACTIVE")]
+
+    result = await use_case.execute(request)
+
+    assert result.sender_address == "sender"
+    assert result.amount == 10.0
+    assert result.tx_hash == "mocked_tx_hash"
+    assert result.status == TransactionStatus.PENDING
+    mock_tx_repo.create.assert_called_once()
+
+    # The router sends it after the response; execute only reads the peers while the session is open
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        await use_case.broadcast_transaction(request)
+    mock_post.assert_awaited_once_with("http://peer/transactions", json=request.model_dump())
 
 @pytest.mark.asyncio
 async def test_submit_transaction_insufficient_funds(mock_tx_repo, mock_hasher, mock_signature_service):

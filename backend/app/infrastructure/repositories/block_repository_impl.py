@@ -23,7 +23,7 @@ class BlockRepositoryImpl(BlockRepository):
             block_hash=block.block_hash,
         )
         self._session.add(model)
-        await self._session.commit()
+        await self._session.flush()
         return block
 
     async def get_latest_block(self) -> Optional[Block]:
@@ -102,7 +102,7 @@ class BlockRepositoryImpl(BlockRepository):
                 )
                 self._session.add(tx)
         
-        await self._session.commit()
+        await self._session.flush()
 
     def _model_to_entity(self, model: BlockModel) -> Block:
         tx_ids = [tx.id for tx in model.transactions] if hasattr(model, "transactions") else []

@@ -27,7 +27,7 @@ class TransactionRepositoryImpl(TransactionRepository):
             block_id=transaction.block_id,
         )
         self._session.add(model)
-        await self._session.commit()
+        await self._session.flush()
         return transaction
 
     async def get_by_id(self, transaction_id: str) -> Optional[Transaction]:
@@ -66,7 +66,7 @@ class TransactionRepositoryImpl(TransactionRepository):
             model.status = transaction.status
             model.tx_hash = transaction.tx_hash
             model.block_id = transaction.block_id
-            await self._session.commit()
+            await self._session.flush()
         return transaction
 
     async def get_balance(self, address: str) -> float:

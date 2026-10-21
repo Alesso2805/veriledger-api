@@ -10,5 +10,6 @@ One technical decision per file: context, options, decision and consequences. An
 | [0004](0004-canonical-signed-message.md) | One canonical signed message, shared with the webapp, with a nonce | Proposed |
 | [0005](0005-deploy-on-one-server-behind-caddy.md) | Deploy the API and the webapp on one server, behind Caddy, on one hostname | Proposed |
 | [0006](0006-demo-access.md) | Demo access with public reads and one-click temporary accounts | Accepted |
+| [0007](0007-one-transaction-per-request.md) | One database transaction per request, committed before the response; broadcasts after it | Accepted |
 
 Statuses: Proposed → Accepted → (Superseded by ADR-NNNN | Deprecated). "Retroactive" means the decision was taken in code on July 28–29, 2026 and written down on October 20, 2026.

@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter
 
 from backend.app.application.dto.wallet import WalletKeyPairDTO
 from backend.app.application.use_cases.wallet.generate_wallet import GenerateWalletUseCase
 from backend.app.application.use_cases.wallet.get_balance import GetBalanceUseCase
-from backend.app.infrastructure.database import get_db_session
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.security.ed25519_service import Ed25519ServiceImpl
+from backend.app.presentation.dependencies.database import DbSession
 
 router = APIRouter(prefix="/wallets", tags=["wallets"])
 
@@ -27,7 +26,7 @@ async def generate_wallet() -> WalletKeyPairDTO:
 @router.get("/{address}/balance")
 async def get_balance(
     address: str,
-    db: AsyncSession = Depends(get_db_session),
+    db: DbSession,
 ) -> dict:
     tx_repo = TransactionRepositoryImpl(db)
     use_case = GetBalanceUseCase(tx_repo)

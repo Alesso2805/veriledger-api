@@ -16,7 +16,7 @@ class NodeRepositoryImpl(NodeRepository):
             status=node.status
         )
         self._session.add(model)
-        await self._session.commit()
+        await self._session.flush()
         return node
 
     async def get_by_url(self, url: str) -> Optional[Node]:

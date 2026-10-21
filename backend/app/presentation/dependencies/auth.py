@@ -1,11 +1,10 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.domain.entities.user import User, UserRole
-from backend.app.infrastructure.database import get_db_session
 from backend.app.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
 from backend.app.infrastructure.security.jwt_service import JWTTokenService
+from backend.app.presentation.dependencies.database import DbSession
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -15,8 +14,8 @@ def get_token_service() -> JWTTokenService:
 
 
 async def get_current_user(
+    db: DbSession,
     token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db_session),
     token_service: JWTTokenService = Depends(get_token_service),
 ) -> User:
     credentials_exception = HTTPException(
