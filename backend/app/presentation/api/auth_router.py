@@ -11,13 +11,14 @@ from backend.app.infrastructure.security.jwt_service import JWTTokenService
 from backend.app.infrastructure.security.password_hasher import PasswordHasherImpl
 from backend.app.presentation.dependencies.auth import get_current_user
 from backend.app.presentation.dependencies.database import DbSession
-from backend.app.presentation.dependencies.limits import enforce_demo_account_limits
+from backend.app.presentation.dependencies.limits import enforce_demo_account_limits, enforce_login_limit
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenDTO)
-async def login(db: DbSession, form_data: OAuth2PasswordRequestForm = Depends()) -> TokenDTO:
+async def login(request: Request, db: DbSession, form_data: OAuth2PasswordRequestForm = Depends()) -> TokenDTO:
+    enforce_login_limit(request)
     user_repo = UserRepositoryImpl(db)
     password_hasher = PasswordHasherImpl()
     token_service = JWTTokenService()

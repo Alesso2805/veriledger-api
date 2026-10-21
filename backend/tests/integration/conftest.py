@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import uuid
@@ -46,9 +47,10 @@ async def submit(client: AsyncClient, headers: dict[str, str], vector: dict[str,
 
 
 @pytest.fixture(autouse=True)
-def fresh_demo_limits(monkeypatch: pytest.MonkeyPatch) -> None:
-    # The limiter counts in memory for the life of the process; each test starts from nothing
-    monkeypatch.setattr(limits, "demo_limiter", SlidingWindowLimiter())
+def fresh_limits(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The limiter and the mining lock live as long as the process; each test starts from nothing
+    monkeypatch.setattr(limits, "limiter", SlidingWindowLimiter())
+    monkeypatch.setattr(limits, "mining_lock", asyncio.Lock())
 
 
 @pytest.fixture

@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     demo_accounts_per_ip_per_hour: int = Field(default=5, ge=0)
     demo_max_active_accounts: int = Field(default=500, ge=0)
     demo_mines_per_hour: int = Field(default=10, ge=0)
+    # VLA-29's abuse limits on every node; 0 or false turns one off
+    login_attempts_per_minute: int = Field(default=5, ge=0)
+    transactions_per_sender_per_minute: int = Field(default=60, ge=0)
+    mine_one_at_a_time: bool = True
 
     # The nodes of one network need the same values, since a peer's blocks are checked against ours (VLA-18).
     # A SHA-256 hex digest has 64 characters, so no hash meets a higher difficulty

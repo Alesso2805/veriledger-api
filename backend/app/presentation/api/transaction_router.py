@@ -20,6 +20,7 @@ from backend.app.infrastructure.security.ed25519_service import Ed25519ServiceIm
 from backend.app.infrastructure.security.sha256_hasher import SHA256HasherImpl
 from backend.app.presentation.dependencies.auth import RequireRoleOrPeer
 from backend.app.presentation.dependencies.database import DbSession
+from backend.app.presentation.dependencies.limits import enforce_transaction_limit
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
@@ -33,6 +34,10 @@ async def submit_transaction(
     # A peer offers the transactions it received; the signature, balance and nonce are checked all the same
     current_user: User | None = Depends(RequireRoleOrPeer(list(UserRole))),
 ) -> TransactionResponseDTO:
+    # A peer relays what its own node already limited
+    if current_user is not None:
+        enforce_transaction_limit(request.sender_address)
+
     tx_repo = TransactionRepositoryImpl(db)
     node_repo = NodeRepositoryImpl(db)
     hasher = SHA256HasherImpl()

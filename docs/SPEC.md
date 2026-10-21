@@ -123,21 +123,21 @@ The generated OpenAPI document is the contract; this table is its summary. The s
 | Method | Path | Auth | Role (target, VLA-19) | Purpose |
 | --- | --- | --- | --- | --- |
 | GET | `/health` | Public | — | Readiness: 200 with `database: "ok"`, or 503 with `status: "unavailable"` and `database: "unreachable"` (VLA-26); `demo_mode`, whether `POST /auth/demo` exists (VLA-35) |
-| POST | `/auth/login` | Public | — | OAuth2 password form → `{access_token, token_type}` |
+| POST | `/auth/login` | Public | — | OAuth2 password form → `{access_token, token_type}` ; 429 past 5 attempts a minute from one address (› Abuse limits) |
 | POST | `/auth/demo` | Public, only with `DEMO_MODE` | — | Creates a 24-hour `trader` account named `Guest XXXX` and returns its token, 201 (› Demo accounts); 404 without `DEMO_MODE`; 429 past › Demo limits |
 | GET | `/auth/me` | JWT | Any | The current user: `email` (null for a demo account), `display_name` (the email, or `Guest XXXX`), `role`, `expires_at` (set only for a demo account) |
 | POST | `/users` | JWT | admin | Create a user |
 | POST | `/wallets/generate` | Public | — | Development only: 404 when `APP_ENV` is not `development`, since the private key would cross the network (VLA-21) |
 | GET | `/wallets/{address}/balance` | Public | — | `{address, balance}` |
 | GET | `/wallets/{address}/nonce` | Public | — | The sender's next nonce: one more than the last accepted, 1 for a new address |
-| POST | `/transactions` | JWT or peer token | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings. A byte-identical replay answers 200 with the stored transaction; another body with a used or skipped `nonce` answers 409 |
+| POST | `/transactions` | JWT or peer token | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings. A byte-identical replay answers 200 with the stored transaction; another body with a used or skipped `nonce` answers 409 ; 429 past 60 a minute from one sender (› Abuse limits) |
 | GET | `/transactions/{tx_hash}` | Public | — | Lookup by hash (404 if unknown), with `block_number` and `block_hash` (null while pending) |
 | GET | `/transactions?status=PENDING` | Public | — | What waits for the next block, newest first (`skip`, `limit` up to 100); only `PENDING` for now |
 | GET | `/wallets/{address}/transactions` | Public | — | What an address sent or received, newest first (`skip`, `limit` up to 100), each with its status, `tx_hash` and block |
 | GET | `/blocks` | Public | — | Paginated blocks, newest first (`skip`, `limit` up to 100), each with its `transaction_hashes` |
 | GET | `/blocks/full` | Public | — | Blocks with their transactions, payloads included, for peers (`skip`, `limit` up to 100) |
 | GET | `/blocks/{block_hash}` | Public | — | One block with its transactions (404 if unknown) |
-| POST | `/blocks/mine` | JWT | trader, admin | Mine the mempool into a block; 409 if another request mined that height first (› Request flow (mine a block)); 429 for a demo account past its hourly limit (› Demo limits) |
+| POST | `/blocks/mine` | JWT | trader, admin | Mine the mempool into a block; 409 if another request mined that height first (› Request flow (mine a block)); 429 for a demo account past its hourly limit (› Demo limits) ; 429 while another mining request runs on this node (› Abuse limits) |
 | POST | `/nodes/register` | JWT | admin | Add a peer URL (201; 400 if duplicate, or if › Peer URLs refuses it, with the reason) |
 | GET | `/nodes` | Public | — | List peers |
 | POST | `/nodes/resolve` | JWT or peer token | admin | Adopt the longest valid chain among peers |
@@ -155,6 +155,14 @@ The generated OpenAPI document is the contract; this table is its summary. The s
 | `DEMO_MINES_PER_HOUR` | 10 | A demo account's mining requests in the last hour; normal accounts have no limit | `A demo account can mine N blocks per hour; try again later`, with N the setting (`1 block` when it is 1) |
 
 The active count is read from the database. The other two are counted by a sliding window in the API process's memory (`infrastructure/limits/`), which suffices with one API process (ADR-0005) and starts again after a restart. Behind Caddy, the client address is the visitor's only when uvicorn runs with `--proxy-headers` and trusts Caddy's address (VLA-27).
+
+**Abuse limits (VLA-29).** On every node, each answering 429 with `Retry-After`, counted in the same in-process window as the demo's, with 0 or false turning one off:
+
+| Setting | Default | Counts | `detail` |
+| --- | --- | --- | --- |
+| `LOGIN_ATTEMPTS_PER_MINUTE` | 5 | Sign-in attempts from one client address, failed ones included | `Too many sign-in attempts from your network; try again in a minute` |
+| `TRANSACTIONS_PER_SENDER_PER_MINUTE` | 60 | Transactions from one `sender_address`; a peer's relay with the token is exempt, its own node counted it | `Too many transactions from this sender; try again in a minute` |
+| `MINE_ONE_AT_A_TIME` | true | One mining request at a time per node; a second one answers at once, `Retry-After: 1`, instead of racing the first to the same height | `A block is being mined on this node; try again in a moment` |
 
 **Errors.** Validation and business errors answer 400 with `{"detail": "<message>"}`; missing or invalid tokens 401; a role without permission 403; unknown resources 404; conflicts (duplicate nonce, concurrent mining) 409 from VLA-16 and VLA-17.
 
@@ -194,7 +202,7 @@ The active count is read from the database. The other two are counted by a slidi
 | Security | The server never generates or receives private keys in production | `test_wallet_generate.py`: `/wallets/generate` answers 404 outside development (VLA-21); webapp test (VLW-16) |
 | Security | Peer URLs cannot point the server at internal addresses | One test per refused range and a name with one private answer (`test_resolving_peer_url_policy.py`); refused and not stored at the endpoint (`test_peer_urls.py`); skipped before a call (VLA-19) |
 | Security | Only a node holding the peer token submits or asks for a resolve without a user, and the token opens no other route | `test_peer_token.py`, AR-08, and two running nodes in `test_two_nodes.py` (VLA-19) |
-| Security | Login and transaction submission are rate limited | 429 tests (VLA-29) |
+| Security | Login and transaction submission are rate limited, and one block is mined at a time | `test_abuse_limits.py`: each limit's 429 and `Retry-After`, another address not held back, a peer's relay exempt, 0 or false turning a limit off (VLA-29) |
 | Security | The public demo cannot be flooded with accounts or mining | `test_demo_limits.py`: each limit's 429 and `Retry-After`, another address not held back, 0 turns a limit off (VLA-35) |
 | Reproducibility | The image installs exactly `uv.lock` and the app imports with runtime dependencies only | CI's `image` job builds the image, imports the app inside it, checks that it runs as uid 10001 and waits for its healthcheck (VLA-11, VLA-22) |
 | Deployment | `docker compose up` applies migrations before the API starts | CI's `compose` job: `docker compose up` from a clean clone answers `/health` and `/blocks`, after `migrate` exited 0; the production file resolves with `deploy/.env.example` (VLA-23) |

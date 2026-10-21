@@ -21,7 +21,7 @@ from backend.app.infrastructure.repositories.transaction_repository_impl import 
 from backend.app.infrastructure.security.sha256_hasher import SHA256HasherImpl
 from backend.app.presentation.dependencies.auth import RequireRole
 from backend.app.presentation.dependencies.database import DbSession
-from backend.app.presentation.dependencies.limits import enforce_demo_mining_limit
+from backend.app.presentation.dependencies.limits import enforce_demo_mining_limit, one_mine_at_a_time
 
 router = APIRouter(prefix="/blocks", tags=["blocks"])
 
@@ -132,7 +132,8 @@ async def mine_block(
     )
 
     try:
-        block = await use_case.execute(miner_address=request.miner_address)
+        async with one_mine_at_a_time():
+            block = await use_case.execute(miner_address=request.miner_address)
     except BlockHeightTakenError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     except ValueError as e:
