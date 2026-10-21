@@ -51,3 +51,10 @@ class TransactionResponseDTO(BaseModel):
             block_number=block.block_number if block else None,
             block_hash=block.block_hash if block else None,
         )
+
+
+class PaginatedTransactionResponseDTO(BaseModel):
+    items: list[TransactionResponseDTO]
+    total: int
+    page: int
+    size: int

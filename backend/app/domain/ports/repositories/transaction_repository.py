@@ -21,6 +21,14 @@ class TransactionRepository(ABC):
         pass
 
     @abstractmethod
+    async def list_by_status(self, status: TransactionStatus, skip: int, limit: int) -> list[Transaction]:
+        pass
+
+    @abstractmethod
+    async def count_by_status(self, status: TransactionStatus) -> int:
+        pass
+
+    @abstractmethod
     async def get_by_block_id(self, block_id: str) -> list[Transaction]:
         pass
 

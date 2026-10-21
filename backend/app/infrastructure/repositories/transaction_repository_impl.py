@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
@@ -49,6 +49,21 @@ class TransactionRepositoryImpl(TransactionRepository):
         result = await self._session.execute(stmt)
         models = result.scalars().all()
         return [self._model_to_entity(m) for m in models]
+
+    async def list_by_status(self, status: TransactionStatus, skip: int, limit: int) -> list[Transaction]:
+        # Newest first; the id breaks ties so that consecutive pages never overlap
+        stmt = (
+            select(TransactionModel)
+            .where(TransactionModel.status == status)
+            .order_by(desc(TransactionModel.timestamp), desc(TransactionModel.id))
+            .offset(skip)
+            .limit(limit)
+        )
+        return [self._model_to_entity(m) for m in (await self._session.execute(stmt)).scalars().all()]
+
+    async def count_by_status(self, status: TransactionStatus) -> int:
+        stmt = select(func.count()).select_from(TransactionModel).where(TransactionModel.status == status)
+        return int((await self._session.execute(stmt)).scalar_one())
 
     async def get_by_block_id(self, block_id: str) -> list[Transaction]:
         stmt = select(TransactionModel).where(TransactionModel.block_id == block_id)
