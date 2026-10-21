@@ -13,6 +13,10 @@ class Settings(BaseSettings):
 
     # Opens POST /auth/demo to anyone (ADR-0006); a node without it answers 404 there
     demo_mode: bool = False
+    # ADR-0006's limits on the public demo; 0 turns one off, as the webapp's end-to-end CI needs
+    demo_accounts_per_ip_per_hour: int = Field(default=5, ge=0)
+    demo_max_active_accounts: int = Field(default=500, ge=0)
+    demo_mines_per_hour: int = Field(default=10, ge=0)
 
     # The nodes of one network need the same values, since a peer's blocks are checked against ours (VLA-18).
     # A SHA-256 hex digest has 64 characters, so no hash meets a higher difficulty

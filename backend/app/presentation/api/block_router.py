@@ -21,6 +21,7 @@ from backend.app.infrastructure.repositories.transaction_repository_impl import 
 from backend.app.infrastructure.security.sha256_hasher import SHA256HasherImpl
 from backend.app.presentation.dependencies.auth import RequireRole
 from backend.app.presentation.dependencies.database import DbSession
+from backend.app.presentation.dependencies.limits import enforce_demo_mining_limit
 
 router = APIRouter(prefix="/blocks", tags=["blocks"])
 
@@ -111,6 +112,8 @@ async def mine_block(
     db: DbSession,
     current_user: User = Depends(RequireRole([UserRole.TRADER, UserRole.ADMIN])),
 ) -> BlockResponseDTO:
+    enforce_demo_mining_limit(current_user)
+
     block_repo = BlockRepositoryImpl(db)
     tx_repo = TransactionRepositoryImpl(db)
     node_repo = NodeRepositoryImpl(db)

@@ -15,8 +15,10 @@ from backend.app.core.config import settings
 from backend.app.domain.entities.user import UserRole
 from backend.app.infrastructure import database
 from backend.app.infrastructure.database import Base
+from backend.app.infrastructure.limits.sliding_window import SlidingWindowLimiter
 from backend.app.infrastructure.models.user import UserModel
 from backend.app.infrastructure.security.password_hasher import PasswordHasherImpl
+from backend.app.presentation.dependencies import limits
 
 # Never the app's database: the fixture drops every table. VLA-25 provides one in CI.
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "")
@@ -41,6 +43,12 @@ async def submit(client: AsyncClient, headers: dict[str, str], vector: dict[str,
     assert response.status_code == 201
     tx_hash: str = response.json()["tx_hash"]
     return tx_hash
+
+
+@pytest.fixture(autouse=True)
+def fresh_demo_limits(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The limiter counts in memory for the life of the process; each test starts from nothing
+    monkeypatch.setattr(limits, "demo_limiter", SlidingWindowLimiter())
 
 
 @pytest.fixture
