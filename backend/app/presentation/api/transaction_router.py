@@ -61,9 +61,8 @@ async def list_transactions(
     # Only the mempool for now: a confirmed transaction would also need its block, which this list does not read
     tx_status: Literal["PENDING"] = Query("PENDING", alias="status"),
     skip: int = Query(0, ge=0),
-    # ADR-0006 caps pages at 100 for reads that become public with VLA-36
+    # ADR-0006 caps the pages of public reads at 100
     limit: int = Query(100, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
 ) -> PaginatedTransactionResponseDTO:
     return await ListPendingTransactionsUseCase(TransactionRepositoryImpl(db)).execute(skip=skip, limit=limit)
 
@@ -72,7 +71,6 @@ async def list_transactions(
 async def get_transaction(
     tx_hash: str,
     db: DbSession,
-    current_user: User = Depends(get_current_user),
 ) -> TransactionResponseDTO:
     use_case = GetTransactionByHashUseCase(TransactionRepositoryImpl(db), BlockRepositoryImpl(db))
 

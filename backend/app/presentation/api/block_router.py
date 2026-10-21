@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 
 from backend.app.application.dto.block import (
     BlockResponseDTO,
@@ -57,9 +57,9 @@ async def _full_block_response(block: Block, tx_repo: TransactionRepositoryImpl)
 @router.get("", response_model=PaginatedBlockResponseDTO)
 async def get_blocks(
     db: DbSession,
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(get_current_user),
+    skip: int = Query(0, ge=0),
+    # ADR-0006 caps the pages of public reads at 100
+    limit: int = Query(100, ge=1, le=100),
 ) -> PaginatedBlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
     blocks = await block_repo.get_all_blocks(skip=skip, limit=limit)
@@ -74,9 +74,9 @@ async def get_blocks(
 @router.get("/full", response_model=PaginatedFullBlockResponseDTO)
 async def get_blocks_full(
     db: DbSession,
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(get_current_user),
+    skip: int = Query(0, ge=0),
+    # ADR-0006 caps the pages of public reads at 100
+    limit: int = Query(100, ge=1, le=100),
 ) -> PaginatedFullBlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
     tx_repo = TransactionRepositoryImpl(db)
@@ -94,7 +94,6 @@ async def get_blocks_full(
 async def get_block(
     block_hash: str,
     db: DbSession,
-    current_user: User = Depends(get_current_user),
 ) -> FullBlockResponseDTO:
     block = await BlockRepositoryImpl(db).get_by_hash(block_hash)
     if block is None:
