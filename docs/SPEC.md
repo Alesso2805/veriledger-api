@@ -37,7 +37,7 @@ Status: **Built** (exists on `main`, see the audit for its defects), **Planned**
 | Wallets | Key pair | `POST /wallets/generate` returns an Ed25519 pair in hex | Built (VLA-04); development only in VLA-21, the webapp generates keys itself (VLW-16) |
 | Wallets | Balance | `GET /wallets/{address}/balance`: confirmed received − (confirmed and pending sent + fees) | Built (VLA-04) |
 | Ledger | Signed transactions | The API rebuilds the signed message and verifies the Ed25519 signature; valid ones enter the mempool as `PENDING` | Built (VLA-03); canonical message in VLA-15 |
-| Ledger | Replay protection | A per-sender nonce inside the signed message | Built (VLA-16); the transaction hash over the signed fields comes with its second PR |
+| Ledger | Replay protection | A per-sender nonce inside the signed message, and a transaction hash over what was signed | Built (VLA-16) |
 | Ledger | Notarization | Amount 0 with a `payload` (the document's hash) that is part of the signed message | Built (VLA-08) |
 | Mining | Proof of Work | All pending transactions plus a coinbase go into one block; SHA-256 with 4 leading hex zeros | Built (VLA-05) |
 | Mining | Reward and fees | Coinbase from `SYSTEM` of 50 + the block's fees to the miner | Built (VLA-06) |
@@ -95,7 +95,7 @@ PostgreSQL 16. One Alembic history in `backend/alembic/versions`. Every table in
 | | `tx_hash` | varchar | Unique index; NOT NULL once VLA-16 hashes every transaction at creation | Built nullable |
 | | `payload` | varchar | NULL; the notarized document hash | Built |
 | | `block_id` | varchar | FK → `blocks.id`, NULL while pending | Built |
-| | `nonce` | bigint | Unique (`sender_address`, `nonce`); NULL only on rows from before VLA-16 (coinbases take their block number with VLA-16's second PR) | Built |
+| | `nonce` | bigint | Unique (`sender_address`, `nonce`); NULL only on rows from before VLA-16; a coinbase takes its block number | Built |
 | `nodes` | `id` | varchar(36) | PK | Built |
 | | `url` | varchar(255) | NOT NULL, unique index | Built |
 | | `status` | varchar(20) | NOT NULL, `ACTIVE` | Built |
@@ -116,7 +116,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | POST | `/wallets/generate` | Public | — | Development only (VLA-21) |
 | GET | `/wallets/{address}/balance` | Public | — | `{address, balance}` |
 | GET | `/wallets/{address}/nonce` | Public | — | The sender's next nonce: one more than the last accepted, 1 for a new address |
-| POST | `/transactions` | JWT | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings, and a `nonce` that is not the sender's next answers 409 |
+| POST | `/transactions` | JWT | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings. A byte-identical replay answers 200 with the stored transaction; another body with a used or skipped `nonce` answers 409 |
 | GET | `/transactions/{tx_hash}` | JWT | Any | Lookup by hash (404 if unknown), with `block_number` and `block_hash` (null while pending) |
 | GET | `/transactions?status=PENDING` | JWT | Any | What waits for the next block, newest first (`skip`, `limit` up to 100); only `PENDING` for now |
 | GET | `/wallets/{address}/transactions` | Public | — | An address's activity, paginated. Planned (VLA-34) |
@@ -148,7 +148,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 - `nonce` is an integer from 1 to 2^53 − 1, one more than the sender's last accepted nonce (`GET /wallets/{address}/nonce`). A reused or skipped nonce answers 409; two requests racing for one nonce meet the unique (`sender_address`, `nonce`) constraint, which also answers 409.
 - `docs/signing-vectors.json` (version 2) pins the format; its signatures come from `@noble/curves`, the webapp's library, and both repositories' tests verify every vector.
 
-**Transaction hash.** SHA-256 of sorted-key JSON over `id`, `sender_address`, `receiver_address`, `amount`, `timestamp` and `payload`. VLA-16 makes it cover every signed field plus `fee`, `nonce` and `signature`.
+**Transaction hash (VLA-16).** SHA-256 of compact sorted-key JSON over the signed fields (`amount` and `fee` as 8-decimal strings, `nonce`, `payload` when present, `receiver_address`, `sender_address`) plus `signature`, with no id or arrival time. The same signed body is the same transaction, and two signatures are two transactions. A coinbase, which signs nothing, takes its block number as nonce, so its hash stays unique. Rows from before VLA-16 keep the hashes they were stored with.
 
 **Block hash and Proof of Work.** SHA-256 of sorted-key JSON over `id`, `block_number`, `previous_hash`, `timestamp`, `nonce` and the sorted `transaction_ids`. A block is valid when its hash starts with `difficulty` hex zeros (4 today; a setting from VLA-17).
 
