@@ -1,6 +1,6 @@
 # ADR-0004: One canonical signed message, shared with the webapp, with a nonce
 
-- **Status:** Proposed
+- **Status:** Accepted on 2026-10-20 (product owner)
 - **Date:** 2026-10-20
 - **Related:** SPEC.md › Signing and hashing contract; ADR-0003; VLA-15, VLA-16; webapp VLW-15, VLW-18 and its ADR-0002
 
@@ -23,7 +23,7 @@ The message also has no nonce or timestamp: the server adds `id` and `timestamp`
 2. **RFC 8785 (JSON Canonicalization Scheme).** A standard, but it needs a library on the Python side and still serializes amounts as IEEE-754 numbers.
 3. **A small explicit format:** sorted keys, no whitespace, UTF-8, amounts as decimal strings with exactly 8 decimals, and a per-sender nonce, pinned by golden vectors that both repositories test.
 
-## Decision (proposed)
+## Decision
 
 Option 3.
 

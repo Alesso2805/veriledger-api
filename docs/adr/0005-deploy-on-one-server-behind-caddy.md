@@ -1,6 +1,6 @@
 # ADR-0005: Deploy the API and the webapp on one server, behind Caddy, on one hostname
 
-- **Status:** Proposed
+- **Status:** Accepted on 2026-10-20 (product owner)
 - **Date:** 2026-10-20
 - **Related:** VLA-21 to VLA-23, VLA-27, VLA-28; webapp VLW-21, VLW-22, VLW-25 and its ADR-0003; willay ADR-0010 (same pattern)
 
@@ -14,7 +14,7 @@ The goal of Sprint 4 is a demo anyone can try from a link, at no cost. The stack
 2. **One server with Docker Compose and Caddy,** one hostname: `/` serves the webapp, `/api` the API. One origin (no CORS in production), one certificate, the same Compose file as on a laptop. Willay already runs this way (its ADR-0010), so the runbook is known.
 3. **Kubernetes.** Far more machinery than one demo needs.
 
-## Decision (proposed)
+## Decision
 
 Option 2.
 

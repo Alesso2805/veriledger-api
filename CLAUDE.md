@@ -25,7 +25,7 @@ A FastAPI service that (1) accepts Ed25519-signed transfers and document notariz
 # Mandatory stack
 - Python 3.12, FastAPI, SQLAlchemy 2 async with asyncpg, Pydantic v2 and pydantic-settings, Alembic, uv, Ruff, Mypy (strict), Pytest with pytest-asyncio, structlog, PyJWT, bcrypt, `cryptography` (Ed25519), httpx (peer calls).
 - PostgreSQL 16 in every environment that runs the app; SQLite (aiosqlite) only for unit tests that never touch SQL specifics (ADR-0002).
-- Docker Compose for local and deployed runs; Caddy in front on the server (ADR-0005, proposed).
+- Docker Compose for local and deployed runs; Caddy in front on the server (ADR-0005).
 
 # Architecture rules (summary; the full list with IDs is docs/ARCHITECTURE_RULES.md)
 - Layers under `backend/app`: `core` (config, logging), `domain` (entities and ports), `application` (use cases and DTOs), `infrastructure` (models, repositories, crypto, consensus, database), `presentation` (FastAPI routers and dependencies).
