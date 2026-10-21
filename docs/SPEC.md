@@ -259,7 +259,7 @@ veriledger-api/
 ├── Makefile
 ├── pyproject.toml
 ├── uv.lock
-├── .python-version               # 3.12, read by uv
+├── .python-version               # 3.12.13, read by uv locally and in CI
 ├── .pre-commit-config.yaml       # Ruff hooks, same version as uv.lock
 ├── CLAUDE.md
 ├── CHANGELOG.md                  # VLA-30
