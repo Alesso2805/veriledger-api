@@ -36,7 +36,7 @@ Option 3.
 - `nonce` is an integer, one more than the sender's last accepted nonce; `GET /wallets/{address}/nonce` returns the next one. A reused or skipped nonce answers 409 (VLA-16). It runs from 1 to 2^53 − 1, the largest integer JavaScript holds exactly, so both sides write it alike; a unique (`sender_address`, `nonce`) constraint stops two requests racing for one nonce.
 - One function per repository builds the message: `build_signed_message` in the API, `buildSignedMessage` in the webapp's `src/lib/signing.ts`.
 - `docs/signing-vectors.json` in this repository holds the vectors (private key, fields, message, signature). The webapp copies the file in its tests; a change to the file is a change to this ADR.
-- The transaction hash covers the signed fields plus `signature` (VLA-16), so two different signatures are two transactions and the same signed body is the same transaction.
+- The transaction hash covers the signed fields plus `signature` (VLA-16), so two different signatures are two transactions and the same signed body is the same transaction. A byte-identical replay answers 200 with the stored transaction and is not broadcast again. A coinbase, which has no signature of its own, takes its block number as nonce, so its hash stays unique.
 
 ## Consequences
 
