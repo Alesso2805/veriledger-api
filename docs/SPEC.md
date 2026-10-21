@@ -37,7 +37,7 @@ Status: **Built** (exists on `main`, see the audit for its defects), **Planned**
 | Wallets | Key pair | `POST /wallets/generate` returns an Ed25519 pair in hex | Built (VLA-04); development only in VLA-21, the webapp generates keys itself (VLW-16) |
 | Wallets | Balance | `GET /wallets/{address}/balance`: confirmed received − (confirmed and pending sent + fees) | Built (VLA-04) |
 | Ledger | Signed transactions | The API rebuilds the signed message and verifies the Ed25519 signature; valid ones enter the mempool as `PENDING` | Built (VLA-03); canonical message in VLA-15 |
-| Ledger | Replay protection | A per-sender nonce inside the signed message | Planned (VLA-16) |
+| Ledger | Replay protection | A per-sender nonce inside the signed message | Built (VLA-16); the transaction hash over the signed fields comes with its second PR |
 | Ledger | Notarization | Amount 0 with a `payload` (the document's hash) that is part of the signed message | Built (VLA-08) |
 | Mining | Proof of Work | All pending transactions plus a coinbase go into one block; SHA-256 with 4 leading hex zeros | Built (VLA-05) |
 | Mining | Reward and fees | Coinbase from `SYSTEM` of 50 + the block's fees to the miner | Built (VLA-06) |
@@ -95,7 +95,7 @@ PostgreSQL 16. One Alembic history in `backend/alembic/versions`. Every table in
 | | `tx_hash` | varchar | Unique index; NOT NULL once VLA-16 hashes every transaction at creation | Built nullable |
 | | `payload` | varchar | NULL; the notarized document hash | Built |
 | | `block_id` | varchar | FK → `blocks.id`, NULL while pending | Built |
-| | `nonce` | bigint | NOT NULL for non-coinbase; unique (`sender_address`, `nonce`) | Planned (VLA-16) |
+| | `nonce` | bigint | Unique (`sender_address`, `nonce`); NULL only on rows from before VLA-16 (coinbases take their block number with VLA-16's second PR) | Built |
 | `nodes` | `id` | varchar(36) | PK | Built |
 | | `url` | varchar(255) | NOT NULL, unique index | Built |
 | | `status` | varchar(20) | NOT NULL, `ACTIVE` | Built |
@@ -115,8 +115,8 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | POST | `/users` | JWT | admin | Create a user |
 | POST | `/wallets/generate` | Public | — | Development only (VLA-21) |
 | GET | `/wallets/{address}/balance` | Public | — | `{address, balance}` |
-| GET | `/wallets/{address}/nonce` | Public | — | The sender's next nonce. Planned (VLA-16) |
-| POST | `/transactions` | JWT | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings |
+| GET | `/wallets/{address}/nonce` | Public | — | The sender's next nonce: one more than the last accepted, 1 for a new address |
+| POST | `/transactions` | JWT | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings, and a `nonce` that is not the sender's next answers 409 |
 | GET | `/transactions/{tx_hash}` | JWT | Any | Lookup by hash (404 if unknown), with `block_number` and `block_hash` (null while pending) |
 | GET | `/transactions?status=PENDING` | JWT | Any | What waits for the next block, newest first (`skip`, `limit` up to 100); only `PENDING` for now |
 | GET | `/wallets/{address}/transactions` | Public | — | An address's activity, paginated. Planned (VLA-34) |
@@ -138,15 +138,15 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 
 **Keys.** Ed25519 raw keys in lowercase hex: 32-byte public key (the address), 32-byte private key, 64-byte signature (ADR-0003).
 
-**Signed message, as built (VLA-15).** `build_signed_message` in `backend/app/domain/signed_message.py`: UTF-8 JSON with keys sorted, no whitespace, `payload` omitted when absent, and `amount` and `fee` as strings with exactly 8 decimals and no leading zeros (`"10.00000000"`). The body of `POST /transactions` carries those same strings, and a number answers 422. `docs/signing-vectors.json` (version 1) pins the format; its signatures come from `@noble/curves`, the webapp's library.
-
-**Signed message, target (ADR-0004, VLA-15 and VLA-16).** UTF-8 JSON with keys sorted, no whitespace, amounts and fees as decimal strings with exactly 8 decimals, and a `nonce`:
+**Signed message (ADR-0004; VLA-15, VLA-16).** `build_signed_message` in `backend/app/domain/signed_message.py`: UTF-8 JSON with keys sorted, no whitespace, `payload` omitted when absent:
 
 ```json
 {"amount":"10.00000000","fee":"0.10000000","nonce":1,"payload":"<hex>","receiver_address":"<hex>","sender_address":"<hex>"}
 ```
 
-`payload` is omitted when absent. Golden vectors (key, message, signature) live in `docs/signing-vectors.json` and both repositories' tests verify them.
+- `amount` and `fee` are strings with exactly 8 decimals and no leading zeros; the body of `POST /transactions` carries those same strings, and a number answers 422.
+- `nonce` is an integer from 1 to 2^53 − 1, one more than the sender's last accepted nonce (`GET /wallets/{address}/nonce`). A reused or skipped nonce answers 409; two requests racing for one nonce meet the unique (`sender_address`, `nonce`) constraint, which also answers 409.
+- `docs/signing-vectors.json` (version 2) pins the format; its signatures come from `@noble/curves`, the webapp's library, and both repositories' tests verify every vector.
 
 **Transaction hash.** SHA-256 of sorted-key JSON over `id`, `sender_address`, `receiver_address`, `amount`, `timestamp` and `payload`. VLA-16 makes it cover every signed field plus `fee`, `nonce` and `signature`.
 
