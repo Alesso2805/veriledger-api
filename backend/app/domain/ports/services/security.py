@@ -19,5 +19,5 @@ class TokenService(ABC):
 
     @abstractmethod
     def verify_token(self, token: str) -> dict[str, Any]:
-        """Returns the payload if valid, raises exception otherwise"""
+        """Returns the token's claims; raises ValueError if the token is invalid or expired."""
         pass
