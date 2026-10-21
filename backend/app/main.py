@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(
     title="VeriLedger API",
     description="Verifiable Finance Backend API",
-    version="0.1.0",
+    version="1.0.0",
     lifespan=lifespan,
     root_path=settings.api_root_path,
 )

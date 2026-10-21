@@ -1,115 +1,110 @@
 # VeriLedger API
 
-VeriLedger API is a backend portfolio project inspired by verifiable finance and blockchain infrastructure. It implements a complete decentralized ledger including cryptographic transaction hashing, digital signatures (Ed25519), a Mempool, Proof of Work (mining), a P2P network consensus mechanism, and Data Notarization (Proof of Existence).
+A small, readable verifiable ledger, and the engine behind the VeriLedger webapp ([veriledger-webapp](https://github.com/Alesso2805/veriledger-webapp)):
+
+- transfers between Ed25519 addresses, signed in the browser over one canonical message;
+- document notarization (proof of existence), by anchoring a document's hash;
+- Proof-of-Work blocks that pay their miner;
+- peer nodes that converge on the longest valid chain.
+
+It is a portfolio project, so the guarantees it claims are backed by tests: signatures verified, no replays, atomic mining, forged chains rejected. [docs/SPEC.md](docs/SPEC.md) says what it does and how it is checked.
+
+## What it offers
+
+- **Signed transactions** over a canonical message shared with the webapp, with golden vectors ([docs/signing-vectors.json](docs/signing-vectors.json)). A nonce per sender prevents replays (ADR-0004).
+- **Mining** that is atomic, answers 409 when two requests mine the same height, and runs its Proof of Work off the event loop (ADR-0007, ADR-0008).
+- **Peers** that call each other with a shared token, only at public addresses, and adopt a chain only once every block and transaction in it is valid.
+- **Public reads** of blocks, transactions and peers, and **one-click demo accounts** that last 24 hours (ADR-0006).
+- **Production settings:** it refuses unsafe secrets, limits sign-ins, transactions and mining, and reports its database in `/health`, with a request id on every log line.
+- **The OpenAPI document** in [docs/openapi.json](docs/openapi.json), from which the webapp generates its types.
 
 ## Stack
-- Python 3.12
-- FastAPI
-- SQLAlchemy 2.x (async)
-- SQLite (aiosqlite)
-- Alembic
-- Pydantic v2
-- `uv` (Fast Python package installer and resolver)
-- pytest, ruff, mypy
 
-## Architecture & Application Flow
-The project strictly follows Clean Architecture and Domain-Driven Design (DDD) principles:
-- `core/`: Cross-cutting concerns like configuration and logging.
-- `domain/`: Pure business logic, entities, and ports. Zero dependencies on external frameworks.
-- `application/`: Use cases, DTOs, orchestrators.
-- `infrastructure/`: Database models, repositories, and third-party integrations (like Hashing and Cryptography).
-- `presentation/`: FastAPI routers and dependency injection.
+Python 3.12.13, FastAPI, SQLAlchemy 2 (async) with asyncpg, PostgreSQL 16, Pydantic v2, Alembic, uv, structlog; Ruff, Mypy (strict), pytest, import-linter; Docker Compose and Caddy.
 
-### How it works:
-1. **Transactions & Mempool:** Users submit cryptographically signed transactions via the API. The API verifies the Ed25519 signature mathematically. If valid, it is stored in the Mempool (status: `PENDING`).
-2. **Proof of Existence:** Users can submit transactions with `amount: 0.0` and a `payload` (a document hash). This acts as a decentralized notary.
-3. **Mining (Proof of Work):** A miner hits the `/blocks/mine` endpoint. The system gathers pending transactions, verifies them again, and solves a computationally difficult cryptographic puzzle (finding a nonce). Once solved, the block is saved to the SQLite database and transactions become `CONFIRMED`.
-4. **P2P Consensus:** Nodes can register other peer URLs. When `/nodes/resolve` is called, the node fetches the blockchain from all peers. If it finds a mathematically valid chain longer than its own, it drops its local chain and synchronizes with the network, achieving decentralized consensus.
+## Run it
 
-## Run with Docker
+### With Docker
 
-One command migrates the database, then starts the API with `--reload` on your code:
+One command starts PostgreSQL, migrates it, creates the admin, then starts the API with `--reload` on your code:
 
 ```bash
 docker compose up
 ```
 
-- The API answers on `http://127.0.0.1:8000` (`API_PORT`), and PostgreSQL 16 on `127.0.0.1:5433` (`POSTGRES_HOST_PORT`).
-- `DEMO_MODE`, `MINING_DIFFICULTY`, `PEER_TOKEN` and the demo limits come from the shell or `.env` (see `.env.example`).
-- The migrate service also creates the admin of `ADMIN_EMAIL` and `ADMIN_PASSWORD`, which default to `admin@veriledger.com` / `adminpassword123` in development.
-- To run the published image instead of building it, as the webapp's end-to-end CI does: `API_IMAGE_TAG=sha-<commit> docker compose -f docker-compose.ghcr.yml up` (VLA-38).
-- Deploying on a server: [docs/runbooks/deploy.md](docs/runbooks/deploy.md), which CI rehearses on every pull request.
-- Production runs the published image `ghcr.io/alesso2805/veriledger-api` with `deploy/docker-compose.prod.yml` and the secrets of `deploy/.env` (copy `deploy/.env.example`).
+- The API answers on `http://127.0.0.1:8000` (`API_PORT`), with its docs at `/docs`. PostgreSQL is on `127.0.0.1:5433` (`POSTGRES_HOST_PORT`).
+- The admin is `admin@veriledger.com` / `adminpassword123` in development (`ADMIN_EMAIL`, `ADMIN_PASSWORD`).
+- `DEMO_MODE`, `MINING_DIFFICULTY`, `PEER_TOKEN`, `CORS_ORIGINS` and the limits come from the shell or from `.env` (see [.env.example](.env.example)).
+- `API_IMAGE_TAG=sha-<commit> docker compose -f docker-compose.ghcr.yml up` runs the published image instead of building it, as the webapp's end-to-end CI does.
 
-## Setup & Running Locally
+### Without Docker
 
-### 1. Install Dependencies
-We use `uv` for lightning-fast dependency management.
-```bash
-# Sync dependencies and create virtual environment
-uv sync
-```
+Run every command from the repository root.
 
-### 2. Configure Environment
 ```bash
-# Copy the example file and adjust if necessary
-cp .env.example .env
-```
-*Note: The project is currently configured to use SQLite, so no external database engine is required.*
-
-### 3. Database Migrations & Seeding
-Apply the latest Alembic migrations to create the database schema:
-```bash
-uv run alembic -c backend/alembic.ini upgrade head
-```
-Seed the initial database (e.g., admin user):
-```bash
-uv run python -m backend.app.cli.seed
-```
-
-### 4. Run the Application
-Start the Uvicorn development server:
-```bash
+uv sync                          # Python 3.12.13 and every dependency, exactly as uv.lock pins them
+cp .env.example .env             # DATABASE_URL points at the PostgreSQL of `docker compose up -d postgres`
+docker compose up -d postgres
+make migrate                     # alembic upgrade head
+make seed                        # the admin of ADMIN_EMAIL and ADMIN_PASSWORD, once
 uv run uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-- API Docs (Swagger): `http://127.0.0.1:8000/docs`
-- Health check: `http://127.0.0.1:8000/health`
 
-## Useful Commands (Testing, Linting & DB)
+## Develop
 
-Here are the most important commands to manage the backend repository. 
-**Note:** Always use `uv run` to ensure you execute within the virtual environment.
-
-### Testing
-Run the comprehensive unit testing suite using an in-memory database:
 ```bash
-# Run all tests
-$env:PYTHONPATH="C:\Users\USER\Documents\GitHub\veriledger-api"; $env:DATABASE_URL="sqlite+aiosqlite:///:memory:"; uv run pytest tests/unit/application/use_cases
-
-# Run specific tests with verbose output
-$env:PYTHONPATH="C:\Users\USER\Documents\GitHub\veriledger-api"; $env:DATABASE_URL="sqlite+aiosqlite:///:memory:"; uv run pytest tests/unit/application/use_cases -v
+make lint                        # Ruff and the layer contracts (import-linter)
+uv run ruff format backend       # or `make format`, which also fixes what Ruff can
+make typecheck                   # Mypy, strict
+make openapi                     # regenerate docs/openapi.json after changing a route or a response model
 ```
 
-### Linting & Formatting
+The tests need a throwaway PostgreSQL. Never point them at a database you care about: they drop every table.
+
 ```bash
-# Auto-format all code
-uv run ruff format backend
-
-# Run linter to check for code quality issues
-uv run ruff check backend
-
-# Run static type checking
-uv run mypy backend/app backend/tests
+docker run -d --rm --name vl-test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test -p 55439:5432 postgres:16-alpine
+DATABASE_URL=sqlite+aiosqlite:///:memory: \
+TEST_DATABASE_URL=postgresql+asyncpg://postgres:test@127.0.0.1:55439/test \
+uv run pytest backend/tests -rs
+docker stop vl-test
 ```
 
-### Database Management (Alembic)
+Without `TEST_DATABASE_URL` the integration tests skip and the unit and architecture tests still run. CI runs everything on every pull request: lint, format, types, the layer contracts, the tests on PostgreSQL, the image, Compose, and a rehearsal of the deployment.
+
+A new migration:
+
 ```bash
-# Create a new migration after changing SQLAlchemy models
-uv run alembic -c backend/alembic.ini revision --autogenerate -m "description of changes"
-
-# Apply migrations to the database
-uv run alembic -c backend/alembic.ini upgrade head
-
-# Rollback the last migration
-uv run alembic -c backend/alembic.ini downgrade -1
+uv run alembic -c backend/alembic.ini revision --autogenerate -m "what changes"
 ```
+
+AR-06 and AR-07 check that the models and the migrations agree, and that the history goes down and up again cleanly.
+
+## Architecture
+
+One FastAPI service in layers, with the dependencies pointing inward (ADR-0001):
+
+| Layer | Holds |
+| --- | --- |
+| `domain/` | Entities, ports, the signed message and the chain rules. Standard library only |
+| `application/` | One use case per file, and the DTOs |
+| `infrastructure/` | The database, repositories, cryptography, Proof of Work, peers and limits |
+| `presentation/` | FastAPI routers and dependencies |
+| `core/` | Settings and logging |
+| `cli/` | The seed, the demo cleanup, and the admin's password |
+
+[docs/ARCHITECTURE_RULES.md](docs/ARCHITECTURE_RULES.md) states each rule, and names the test that checks it.
+
+## Deploy
+
+The image is published to `ghcr.io/alesso2805/veriledger-api` on every push to `main`. One server runs it behind Caddy, with the webapp, on one hostname (ADR-0005):
+
+- [docs/runbooks/deploy.md](docs/runbooks/deploy.md): from an empty server to a verified demo. CI rehearses it on every pull request;
+- [docs/runbooks/backup-and-restore.md](docs/runbooks/backup-and-restore.md);
+- [docs/runbooks/rotate-secrets.md](docs/runbooks/rotate-secrets.md).
+
+## Documentation
+
+- [docs/SPEC.md](docs/SPEC.md): what the API does, its contract, and how each guarantee is verified.
+- [docs/BACKLOG.md](docs/BACKLOG.md): the stories and the sprint plan; [docs/sprints/](docs/sprints/): what each sprint delivered.
+- [docs/adr/](docs/adr/): one decision per file.
+- [CHANGELOG.md](CHANGELOG.md): what changed in each release.
