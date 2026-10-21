@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 
 class TransactionStatus(str, Enum):
@@ -20,6 +19,6 @@ class Transaction:
     status: TransactionStatus
     timestamp: datetime
     signature: str = ""
-    tx_hash: Optional[str] = None
-    payload: Optional[str] = None
-    block_id: Optional[str] = None
+    tx_hash: str | None = None
+    payload: str | None = None
+    block_id: str | None = None

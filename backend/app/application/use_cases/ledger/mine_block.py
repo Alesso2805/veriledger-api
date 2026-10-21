@@ -1,15 +1,16 @@
 import asyncio
-import httpx
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
+import httpx
 
 from backend.app.application.dto.block import BlockResponseDTO
 from backend.app.domain.entities.block import Block
 from backend.app.domain.entities.node import Node
-from backend.app.domain.entities.transaction import TransactionStatus, Transaction
+from backend.app.domain.entities.transaction import Transaction, TransactionStatus
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
-from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
+from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.consensus import ConsensusService
 from backend.app.domain.ports.services.hashing import HasherService
 
@@ -37,7 +38,7 @@ class MineBlockUseCase:
         # Calculate total fees from pending txs
         total_fees = sum(tx.fee for tx in pending_txs)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Create Coinbase transaction
         coinbase_tx = Transaction(

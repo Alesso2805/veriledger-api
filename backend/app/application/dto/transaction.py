@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +11,7 @@ class TransactionCreateRequestDTO(BaseModel):
     amount: float = Field(..., ge=0)
     fee: float = Field(default=0.0, ge=0)
     signature: str
-    payload: Optional[str] = None
+    payload: str | None = None
 
 
 class TransactionResponseDTO(BaseModel):
@@ -24,6 +23,6 @@ class TransactionResponseDTO(BaseModel):
     status: TransactionStatus
     timestamp: datetime
     signature: str
-    tx_hash: Optional[str] = None
-    payload: Optional[str] = None
-    block_id: Optional[str] = None
+    tx_hash: str | None = None
+    payload: str | None = None
+    block_id: str | None = None

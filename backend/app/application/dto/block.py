@@ -1,7 +1,5 @@
 from datetime import datetime
-from typing import Optional
 
-from typing import List
 from pydantic import BaseModel
 
 
@@ -33,14 +31,14 @@ class FullBlockResponseDTO(BaseModel):
 
 
 class PaginatedBlockResponseDTO(BaseModel):
-    items: List[BlockResponseDTO]
+    items: list[BlockResponseDTO]
     total: int
     page: int
     size: int
 
 
 class PaginatedFullBlockResponseDTO(BaseModel):
-    items: List[FullBlockResponseDTO]
+    items: list[FullBlockResponseDTO]
     total: int
     page: int
     size: int

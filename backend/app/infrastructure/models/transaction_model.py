@@ -1,12 +1,12 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Numeric, DateTime, ForeignKey, Enum as SAEnum
+
+from sqlalchemy import DateTime, ForeignKey, Numeric, String
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import Optional
 
 from backend.app.domain.entities.transaction import TransactionStatus
 from backend.app.infrastructure.models.base_model import BaseModel
-from backend.app.infrastructure.models.block_model import BlockModel
 
 
 class TransactionModel(BaseModel):
@@ -20,8 +20,8 @@ class TransactionModel(BaseModel):
     status: Mapped[TransactionStatus] = mapped_column(SAEnum(TransactionStatus), index=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     signature: Mapped[str] = mapped_column(String)
-    tx_hash: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True, nullable=True)
-    payload: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    tx_hash: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
+    payload: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    block_id: Mapped[Optional[str]] = mapped_column(ForeignKey("blocks.id"), nullable=True)
+    block_id: Mapped[str | None] = mapped_column(ForeignKey("blocks.id"), nullable=True)
     block = relationship("BlockModel", back_populates="transactions")

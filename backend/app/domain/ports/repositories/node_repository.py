@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from backend.app.domain.entities.node import Node
 
@@ -10,7 +9,7 @@ class NodeRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_url(self, url: str) -> Optional[Node]:
+    async def get_by_url(self, url: str) -> Node | None:
         pass
 
     @abstractmethod

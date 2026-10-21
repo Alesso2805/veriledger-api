@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+
 from backend.app.domain.entities.block import Block
 
 

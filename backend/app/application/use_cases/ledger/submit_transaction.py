@@ -1,14 +1,15 @@
 import asyncio
-import httpx
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
+import httpx
 
 from backend.app.application.dto.transaction import TransactionCreateRequestDTO
 from backend.app.domain.entities.node import Node
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
-from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
+from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.hashing import HasherService
 from backend.app.domain.ports.services.signature import SignatureService
 
@@ -30,7 +31,7 @@ class SubmitTransactionUseCase:
     async def execute(self, request: TransactionCreateRequestDTO) -> Transaction:
         # Check if transaction signature and contents generate a known hash to avoid infinite loops in gossip
         # Wait, we need to generate the hash first to check if we already have it.
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # We can reconstruct payload to verify signature
         payload = {

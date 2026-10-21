@@ -1,9 +1,10 @@
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import create_autospec
 
-from backend.app.application.use_cases.auth.register_user import RegisterUserUseCase
+import pytest
+
 from backend.app.application.dto.user import UserCreateDTO
+from backend.app.application.use_cases.auth.register_user import RegisterUserUseCase
 from backend.app.domain.entities.user import User, UserRole
 from backend.app.domain.ports.repositories.user_repository import UserRepository
 from backend.app.domain.ports.services.security import PasswordHasher
@@ -48,7 +49,7 @@ async def test_register_user_already_exists(mock_user_repo, mock_password_hasher
 
     request = UserCreateDTO(email="existing@test.com", password="password123", role=UserRole.VIEWER)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     existing = User(
         id="1", email="existing@test.com", password_hash="hash", role=UserRole.VIEWER, created_at=now, updated_at=now
     )

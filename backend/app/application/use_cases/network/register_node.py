@@ -1,4 +1,5 @@
 import uuid
+
 from backend.app.application.dto.node import NodeCreateRequestDTO
 from backend.app.domain.entities.node import Node
 from backend.app.domain.ports.repositories.node_repository import NodeRepository

@@ -1,9 +1,10 @@
-import pytest
-from datetime import datetime, timezone
-from unittest.mock import create_autospec, AsyncMock
+from datetime import UTC, datetime
+from unittest.mock import create_autospec
 
-from backend.app.application.use_cases.auth.login import LoginUseCase
+import pytest
+
 from backend.app.application.dto.user import LoginDTO
+from backend.app.application.use_cases.auth.login import LoginUseCase
 from backend.app.domain.entities.user import User, UserRole
 from backend.app.domain.ports.repositories.user_repository import UserRepository
 from backend.app.domain.ports.services.security import PasswordHasher, TokenService
@@ -28,7 +29,7 @@ def mock_token_service():
 async def test_login_success(mock_user_repo, mock_password_hasher, mock_token_service):
     use_case = LoginUseCase(mock_user_repo, mock_password_hasher, mock_token_service)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_user = User(
         id="1", email="test@test.com", password_hash="hash", role=UserRole.ADMIN, created_at=now, updated_at=now
     )
@@ -61,7 +62,7 @@ async def test_login_invalid_email(mock_user_repo, mock_password_hasher, mock_to
 async def test_login_invalid_password(mock_user_repo, mock_password_hasher, mock_token_service):
     use_case = LoginUseCase(mock_user_repo, mock_password_hasher, mock_token_service)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     mock_user = User(
         id="1", email="test@test.com", password_hash="hash", role=UserRole.ADMIN, created_at=now, updated_at=now
     )

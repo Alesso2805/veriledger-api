@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from backend.app.domain.entities.block import Block
 
@@ -10,11 +9,11 @@ class BlockRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_latest_block(self) -> Optional[Block]:
+    async def get_latest_block(self) -> Block | None:
         pass
 
     @abstractmethod
-    async def get_by_hash(self, block_hash: str) -> Optional[Block]:
+    async def get_by_hash(self, block_hash: str) -> Block | None:
         pass
 
     @abstractmethod

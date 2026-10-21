@@ -1,9 +1,8 @@
 import httpx
-from typing import List
 
 from backend.app.domain.entities.block import Block
-from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
+from backend.app.domain.ports.repositories.node_repository import NodeRepository
 
 
 class ResolveConflictsUseCase:
@@ -19,7 +18,7 @@ class ResolveConflictsUseCase:
         nodes = await self._node_repo.get_all()
         our_blocks = await self._block_repo.get_all_blocks()
         max_length = len(our_blocks)
-        new_chain: List[Block] | None = None
+        new_chain: list[Block] | None = None
 
         async with httpx.AsyncClient() as client:
             for node in nodes:

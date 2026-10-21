@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +28,7 @@ class TransactionRepositoryImpl(TransactionRepository):
         await self._session.flush()
         return transaction
 
-    async def get_by_id(self, transaction_id: str) -> Optional[Transaction]:
+    async def get_by_id(self, transaction_id: str) -> Transaction | None:
         stmt = select(TransactionModel).where(TransactionModel.id == transaction_id)
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()
@@ -38,7 +36,7 @@ class TransactionRepositoryImpl(TransactionRepository):
             return None
         return self._model_to_entity(model)
 
-    async def get_by_hash(self, tx_hash: str) -> Optional[Transaction]:
+    async def get_by_hash(self, tx_hash: str) -> Transaction | None:
         stmt = select(TransactionModel).where(TransactionModel.tx_hash == tx_hash)
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()

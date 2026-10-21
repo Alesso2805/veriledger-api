@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
 
 from backend.app.application.dto.node import NodeCreateRequestDTO, NodeResponseDTO
 from backend.app.application.use_cases.network.register_node import RegisterNodeUseCase
 from backend.app.application.use_cases.network.resolve_conflicts import ResolveConflictsUseCase
 from backend.app.domain.entities.user import User
-from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
+from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.presentation.dependencies.auth import get_current_user
 from backend.app.presentation.dependencies.database import DbSession
 
@@ -29,11 +28,11 @@ async def register_node(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("", response_model=List[NodeResponseDTO])
+@router.get("", response_model=list[NodeResponseDTO])
 async def get_nodes(
     db: DbSession,
     current_user: User = Depends(get_current_user),
-) -> List[NodeResponseDTO]:
+) -> list[NodeResponseDTO]:
     node_repo = NodeRepositoryImpl(db)
     nodes = await node_repo.get_all()
     return [NodeResponseDTO(id=n.id, url=n.url, status=n.status) for n in nodes]
