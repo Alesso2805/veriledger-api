@@ -1,14 +1,18 @@
-# Production (VLA-23): the published image, no bind mounts, no published database port, secrets from deploy/.env.
+# Production (VLA-23, VLA-27): Caddy on ports 80 and 443 in front of the webapp and the API, on one hostname
+# (ADR-0005). The published images, no bind mounts, no published database or API port, secrets from deploy/.env.
 # cp deploy/.env.example deploy/.env, fill it in, then: docker compose -f deploy/docker-compose.prod.yml up -d
-# Caddy in front of the API, on the same host, comes with VLA-27.
 
 x-app: &app
-  image: ghcr.io/alesso2805/veriledger-api:${API_IMAGE_TAG:-main}
+  image: ${API_IMAGE:-ghcr.io/alesso2805/veriledger-api}:${API_IMAGE_TAG:-main}
   restart: unless-stopped
   env_file: .env
   environment:
     # Built from the database's own settings, so the password is written once
     DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:?}
+    # Caddy strips /api before the API sees the path; /api/docs needs to know it was there
+    API_ROOT_PATH: /api
+    # Only Caddy reaches the API, so its X-Forwarded-For is trusted: the demo limits then see the visitor's address
+    FORWARDED_ALLOW_IPS: "*"
 
 services:
   postgres:
@@ -34,12 +38,38 @@ services:
 
   api:
     <<: *app
-    # Only on the host's loopback: Caddy, on the same host, is the way in (VLA-27)
-    ports:
-      - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:
       migrate:
         condition: service_completed_successfully
 
+  webapp:
+    image: ghcr.io/alesso2805/veriledger-webapp:${WEBAPP_IMAGE_TAG:-main}
+    restart: unless-stopped
+    environment:
+      # One origin: the browser reaches the API through the same Caddy, so CSP_CONNECT_SRC stays unset
+      API_BASE_URL: /api
+
+  caddy:
+    image: caddy:2.11.7-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and their keys, kept across restarts so Let's Encrypt is not asked again
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      webapp:
+        condition: service_started
+
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:

@@ -28,6 +28,8 @@ class Settings(BaseSettings):
 
     # Comma-separated browser origins allowed to call the API; behind Caddy the webapp shares its origin (ADR-0005)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    # The prefix a proxy strips before the API sees the path, /api behind Caddy (VLA-27); /docs needs it
+    api_root_path: str = ""
 
     # Opens POST /auth/demo to anyone (ADR-0006); a node without it answers 404 there
     demo_mode: bool = False

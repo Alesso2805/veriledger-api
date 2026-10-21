@@ -159,7 +159,7 @@ jobs:
       - name: The production file is complete
         run: |
           cp deploy/.env.example deploy/.env
-          sed -i 's/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=ci/' deploy/.env
+          sed -i 's/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=ci/; s/^DOMAIN=$/DOMAIN=localhost/' deploy/.env
           docker compose -f deploy/docker-compose.prod.yml config -q
 
       - name: Logs
