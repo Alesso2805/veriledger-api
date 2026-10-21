@@ -10,6 +10,8 @@ DATABASE_URL = "postgresql+asyncpg://user:password@db/veriledger"
 
 UNSAFE_SECRET_KEYS = {
     "missing": None,
+    "the development default": "supersecretkey",
+    "empty": "",
     "the example value": "supersecretkey_change_me_in_production",
     "under 32 bytes": "x" * 31,
 }
@@ -19,13 +21,13 @@ UNSAFE_SECRET_KEYS = {
 def isolated_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     # No .env file and no SECRET_KEY from the machine running the tests
     monkeypatch.chdir(tmp_path)
-    monkeypatch.delenv("SECRET_KEY", raising=False)
+    for name in ("SECRET_KEY", "APP_ENV", "APP_DEBUG", "CORS_ORIGINS"):
+        monkeypatch.delenv(name, raising=False)
 
 
-@pytest.mark.xfail(strict=True, reason="VLA-21: the settings do not validate SECRET_KEY in production yet")
 @pytest.mark.parametrize("secret_key", UNSAFE_SECRET_KEYS.values(), ids=UNSAFE_SECRET_KEYS.keys())
 def test_ar15_production_refuses_an_unsafe_secret_key(secret_key: str | None) -> None:
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match="SECRET_KEY must be set in production"):
         if secret_key is None:
             Settings(app_env="production", database_url=DATABASE_URL)
         else:
@@ -81,3 +83,19 @@ def test_a_negative_demo_limit_is_refused(name: str) -> None:
     overrides: dict[str, Any] = {name: -1}
     with pytest.raises(ValidationError):
         Settings(database_url=DATABASE_URL, **overrides)
+
+
+def test_development_keeps_its_default_secret_key() -> None:
+    assert Settings(database_url=DATABASE_URL).secret_key == "supersecretkey"
+
+
+def test_debug_is_off_unless_asked_for(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert Settings(database_url=DATABASE_URL).app_debug is False
+    monkeypatch.setenv("APP_DEBUG", "true")
+    assert Settings(database_url=DATABASE_URL).app_debug is True
+
+
+def test_cors_origins_are_a_comma_separated_list(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert Settings(database_url=DATABASE_URL).cors_origin_list == ["http://localhost:5173", "http://127.0.0.1:5173"]
+    monkeypatch.setenv("CORS_ORIGINS", " http://127.0.0.1:4173, http://localhost:4173 ,")
+    assert Settings(database_url=DATABASE_URL).cors_origin_list == ["http://127.0.0.1:4173", "http://localhost:4173"]

@@ -15,7 +15,7 @@ DOCUMENTED: dict[str, set[int]] = {
     "POST /auth/demo": {201, 404, 429},
     "GET /auth/me": {200, 401},
     "POST /users": {201, 400, 401, 403},
-    "POST /wallets/generate": {200},
+    "POST /wallets/generate": {200, 404},
     "GET /wallets/{address}/balance": {200},
     "GET /wallets/{address}/nonce": {200},
     "GET /wallets/{address}/transactions": {200, 422},
