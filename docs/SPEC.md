@@ -41,7 +41,7 @@ Status: **Built** (exists on `main`, see the audit for its defects), **Planned**
 | Ledger | Notarization | Amount 0 with a `payload` (the document's hash) that is part of the signed message | Built (VLA-08) |
 | Mining | Proof of Work | All pending transactions plus a coinbase go into one block; SHA-256 with 4 leading hex zeros | Built (VLA-05) |
 | Mining | Reward and fees | Coinbase from `SYSTEM` of 50 + the block's fees to the miner | Built (VLA-06) |
-| Mining | Atomic and non-blocking | One DB transaction per block; PoW off the event loop; difficulty and reward in settings | Planned (VLA-17) |
+| Mining | Atomic and non-blocking | One DB transaction per block; PoW off the event loop; difficulty and reward in settings | Atomic since VLA-17 (one transaction per request, ADR-0007; a taken height answers 409); PoW off the event loop and the settings in VLA-17's second part |
 | Network | Peers | Register, list; new transactions and blocks are broadcast to peers, which take the shared peer token in place of a user | Built (VLA-07); the peer token and safe peer URLs since VLA-19 |
 | Network | Consensus | `POST /nodes/resolve` adopts the longest valid chain among peers | Built (VLA-07) with a structural check only; full validation in VLA-18 |
 | Operations | Health | `GET /health` | Built (VLA-01); database check in VLA-26 |
@@ -64,6 +64,8 @@ One FastAPI process with five layers under `backend/app` (ADR-0001):
 The admin seed lives in `backend/app/cli/seed.py`. Like the routers, it is a composition script that wires infrastructure into a use case, so `infrastructure` never imports `application` (AR-03).
 
 **Request flow (submit a transfer).** Router → `SubmitTransactionUseCase` → rebuild the signed message → `SignatureService.verify_signature` → `HasherService.hash_transaction` → duplicate check by hash → balance check → `TransactionRepository.create` (a flush) → the session dependency commits → the response → the broadcast to peers, as a background task (ADR-0007).
+
+**Request flow (mine a block, VLA-17).** Router → `MineBlockUseCase` → the latest block, then the mempool → the coinbase and the block, built in memory → the Proof of Work, with nothing written yet → the block (a flush), then the coinbase, already in its block, then the confirmations → the session dependency commits → the response → peers are asked to resolve, as a background task. A failure at any step leaves nothing written. Two requests that mine on the same latest block aim at the same height: the unique `block_number` stops the second at its insert, and it answers 409 with nothing written. Reading the latest block before the mempool keeps a transaction out of two blocks: a block committed between the two reads is missing from the first, so the request aims at that block's height and gets the 409.
 
 **Peer calls.** Use cases call peers through the `PeerClient` port (`domain/ports/services/peer_client.py`), implemented with httpx in `infrastructure/peers/`. They offer new transactions (`POST /transactions`), ask peers to resolve after a new block (`POST /nodes/resolve`), and read a peer's whole chain, page by page, from `GET /blocks/full` to resolve conflicts. A peer's chain is as long as what was fetched, never the `total` it claims, and it is compared with our whole chain, not one page.
 
@@ -129,7 +131,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | GET | `/blocks` | Public | — | Paginated blocks, newest first (`skip`, `limit` up to 100), each with its `transaction_hashes` |
 | GET | `/blocks/full` | Public | — | Blocks with their transactions, payloads included, for peers (`skip`, `limit` up to 100) |
 | GET | `/blocks/{block_hash}` | Public | — | One block with its transactions (404 if unknown) |
-| POST | `/blocks/mine` | JWT | trader, admin | Mine the mempool into a block |
+| POST | `/blocks/mine` | JWT | trader, admin | Mine the mempool into a block; 409 if another request mined that height first (› Request flow (mine a block)) |
 | POST | `/nodes/register` | JWT | admin | Add a peer URL (201; 400 if duplicate, or if › Peer URLs refuses it, with the reason) |
 | GET | `/nodes` | Public | — | List peers |
 | POST | `/nodes/resolve` | JWT or peer token | admin | Adopt the longest valid chain among peers |
@@ -167,8 +169,8 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | Integrity | No transaction enters the mempool without a valid signature over the canonical message | Golden vectors and invalid-signature tests (VLA-15) |
 | Integrity | A captured request cannot be replayed | Replay test with the same body twice → 409 (VLA-16) |
 | Integrity | A peer cannot replace the chain with forged or tampered blocks | One test per rule of "Valid chain" (VLA-18) |
-| Atomicity | Mining writes coinbase, block and confirmations together or not at all | Test that fails mid-mining and finds nothing written (VLA-17) |
-| Concurrency | Two simultaneous mine requests never produce a duplicate `block_number` | Concurrent integration test (VLA-17) |
+| Atomicity | Mining writes coinbase, block and confirmations together or not at all | `test_mining.py`: a confirmation that fails after the block and the coinbase were flushed leaves nothing written (VLA-17) |
+| Concurrency | Two simultaneous mine requests never produce a duplicate `block_number` | `test_mining.py`: four simultaneous mines give consecutive blocks or 409, one coinbase each, and the pending transfer in one block; a stale latest block answers 409 (VLA-17) |
 | Availability | Mining does not block other requests | `/health` answers while a block is mined (VLA-17) |
 | Security | Production refuses a missing, default or short `SECRET_KEY`; debug off by default; CORS origins from configuration | Settings tests (VLA-21) |
 | Security | The server never generates or receives private keys in production | `/wallets/generate` answers 404 in production (VLA-21); webapp test (VLW-16) |
