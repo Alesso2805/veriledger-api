@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.app.application.dto.node import NodeCreateRequestDTO, NodeResponseDTO
+from backend.app.application.dto.node import NodeCreateRequestDTO, NodeResponseDTO, ResolveConflictsResponseDTO
 from backend.app.application.use_cases.network.register_node import RegisterNodeUseCase
 from backend.app.application.use_cases.network.resolve_conflicts import ResolveConflictsUseCase
 from backend.app.domain.entities.user import User
@@ -38,14 +38,15 @@ async def get_nodes(
     return [NodeResponseDTO(id=n.id, url=n.url, status=n.status) for n in nodes]
 
 
-@router.post("/resolve")
+@router.post("/resolve", response_model=ResolveConflictsResponseDTO)
 async def resolve_conflicts(
     db: DbSession,
     current_user: User = Depends(get_current_user),
-) -> dict[str, str | bool]:
+) -> ResolveConflictsResponseDTO:
     node_repo = NodeRepositoryImpl(db)
     block_repo = BlockRepositoryImpl(db)
     use_case = ResolveConflictsUseCase(node_repo, block_repo)
 
     replaced = await use_case.execute()
-    return {"message": "Our chain was replaced" if replaced else "Our chain is authoritative", "replaced": replaced}
+    message = "Our chain was replaced" if replaced else "Our chain is authoritative"
+    return ResolveConflictsResponseDTO(message=message, replaced=replaced)
