@@ -121,6 +121,20 @@ jobs:
           # migrate also seeded the development admin (VLA-24)
           curl -fsS -d 'username=admin@veriledger.com&password=adminpassword123' http://127.0.0.1:8000/auth/login
 
+      - name: docker-compose.ghcr.yml runs the image this job built, without building (VLA-38)
+        run: |
+          docker compose down -v
+          export API_IMAGE=veriledger-api API_IMAGE_TAG=dev
+          docker compose -f docker-compose.ghcr.yml up -d backend
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:8000/health && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/health
+          curl -fsS -d 'username=admin@veriledger.com&password=adminpassword123' http://127.0.0.1:8000/auth/login
+          # The API runs from the image, not from the checkout
+          test -z "$(docker compose -f docker-compose.ghcr.yml config | grep -E '^ +build:|type: bind')"
+
       - name: The production file is complete
         run: |
           cp deploy/.env.example deploy/.env
@@ -129,5 +143,7 @@ jobs:
 
       - name: Logs
         if: failure()
-        run: docker compose logs
+        run: |
+          docker compose logs
+          docker compose -f docker-compose.ghcr.yml logs
 

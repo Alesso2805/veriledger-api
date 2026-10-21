@@ -1,0 +1,62 @@
+# The published API, for the webapp's end-to-end CI (VLA-38): the services, ports and variables of docker-compose.yml,
+# but the image comes from GHCR, with no build, no bind mount and no --reload.
+#   API_IMAGE_TAG=sha-<commit> docker compose -f docker-compose.ghcr.yml up -d backend
+# API_IMAGE points it at another image, such as the one API CI has just built.
+
+x-app: &app
+  image: ${API_IMAGE:-ghcr.io/alesso2805/veriledger-api}:${API_IMAGE_TAG:-main}
+  environment:
+    DATABASE_URL: postgresql+asyncpg://veriledger:veriledger_pass@postgres:5432/veriledger
+    APP_ENV: development
+    APP_DEBUG: "true"
+    # Comma-separated; the webapp's end-to-end CI adds its preview origin, e.g. http://127.0.0.1:4173
+    CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    # The admin the migrate service seeds; these defaults are for development only
+    ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@veriledger.com}
+    ADMIN_PASSWORD: ${ADMIN_PASSWORD:-adminpassword123}
+    ALLOW_PRIVATE_PEERS: "true"
+    PEER_TOKEN: ${PEER_TOKEN:-}
+    MINING_DIFFICULTY: ${MINING_DIFFICULTY:-4}
+    DEMO_MODE: ${DEMO_MODE:-false}
+    # 0 turns a demo limit off, as the webapp's end-to-end CI needs (ADR-0006)
+    DEMO_ACCOUNTS_PER_IP_PER_HOUR: ${DEMO_ACCOUNTS_PER_IP_PER_HOUR:-5}
+    DEMO_MAX_ACTIVE_ACCOUNTS: ${DEMO_MAX_ACTIVE_ACCOUNTS:-500}
+    DEMO_MINES_PER_HOUR: ${DEMO_MINES_PER_HOUR:-10}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: veriledger
+      POSTGRES_PASSWORD: veriledger_pass
+      POSTGRES_DB: veriledger
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      # Its own volume, so a published image never migrates the development database of docker-compose.yml
+      - postgres16_ghcr_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veriledger -d veriledger"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Migrates, then creates the admin once (VLA-24); the API starts only if both succeed
+  migrate:
+    <<: *app
+    command: ["sh", "-c", "alembic -c backend/alembic.ini upgrade head && python -m backend.app.cli.seed"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # The image's own command: uvicorn as uid 10001, without --reload, with its HEALTHCHECK
+  backend:
+    <<: *app
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres16_ghcr_data:
