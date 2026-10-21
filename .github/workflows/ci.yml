@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  # Every PR, whatever its base, so a stacked PR is checked too
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same branch or PR cancels the run it makes obsolete
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: veriledger
+          POSTGRES_PASSWORD: veriledger
+          POSTGRES_DB: veriledger_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U veriledger -d veriledger_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The settings need a URL at import; tests that touch a database use TEST_DATABASE_URL
+      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+      TEST_DATABASE_URL: postgresql+asyncpg://veriledger:veriledger@localhost:5432/veriledger_test
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          # The uv that wrote uv.lock; Python comes from .python-version
+          version: "0.11.25"
+          enable-cache: true
+
+      - name: Install exactly uv.lock
+        run: uv sync --frozen
+
+      - name: Ruff
+        run: uv run ruff check backend
+
+      - name: Ruff format
+        run: uv run ruff format --check backend
+
+      - name: Mypy strict
+        run: uv run mypy backend/app backend/tests
+
+      - name: Import the app with runtime dependencies only
+        # asyncpg is a runtime dependency and aiosqlite is not, so this needs a PostgreSQL URL; nothing connects to it
+        env:
+          DATABASE_URL: postgresql+asyncpg://unused:unused@localhost/unused
+        run: make check-imports
+
+      - name: Tests, integration tests on PostgreSQL
+        # -rs prints why a test was skipped, so a missing database shows instead of passing quietly
+        run: uv run pytest backend/tests -rs

@@ -244,7 +244,7 @@ veriledger-api/
 │   ├── adr/
 │   ├── runbooks/                 # VLA-28
 │   └── sprints/
-├── .github/workflows/ci.yml      # VLA-10
+├── .github/workflows/ci.yml      # lint, format, types, tests on Postgres
 ├── docker-compose.yml            # with the migrate service (VLA-23)
 ├── Dockerfile
 ├── Makefile
