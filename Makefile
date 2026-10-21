@@ -34,6 +34,10 @@ seed:
 openapi:
 	DATABASE_URL=$${DATABASE_URL:-sqlite+aiosqlite:///:memory:} uv run python -m backend.app.openapi_document
 
+# After changing ADMIN_PASSWORD (docs/runbooks/rotate-secrets.md)
+set-admin-password:
+	uv run python -m backend.app.cli.set_admin_password
+
 # Run on a schedule in demo deployments (ADR-0006)
 purge-demo-accounts:
 	uv run python -m backend.app.cli.purge_demo_accounts

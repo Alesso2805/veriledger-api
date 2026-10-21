@@ -1,5 +1,7 @@
 # Environments
 .env
+# deploy/backup.sh writes here
+backups/
 .venv/
 env/
 venv/

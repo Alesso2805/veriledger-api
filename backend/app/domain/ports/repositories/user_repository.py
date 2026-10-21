@@ -18,6 +18,10 @@ class UserRepository(ABC):
         pass
 
     @abstractmethod
+    async def set_password_hash(self, user_id: str, password_hash: str) -> None:
+        """Replaces the user's password hash, as rotating the admin's password does (VLA-28)."""
+
+    @abstractmethod
     async def active_demo_accounts(self, now: datetime) -> tuple[int, datetime | None]:
         """How many demo accounts have not expired by now, and when the first of them expires."""
 
