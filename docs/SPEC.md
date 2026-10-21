@@ -63,11 +63,11 @@ One FastAPI process with five layers under `backend/app` (ADR-0001):
 
 The admin seed lives in `infrastructure/seed.py` and runs a use case, so today it is the one place where `infrastructure` imports `application`. VLA-13 moves it to `backend/app/cli/seed.py`, a composition script like the routers.
 
-**Request flow (submit a transfer).** Router → `SubmitTransactionUseCase` → rebuild the signed message → `SignatureService.verify_signature` → `HasherService.hash_transaction` → duplicate check by hash → balance check → `TransactionRepository.create` → broadcast to peers in the background.
+**Request flow (submit a transfer).** Router → `SubmitTransactionUseCase` → rebuild the signed message → `SignatureService.verify_signature` → `HasherService.hash_transaction` → duplicate check by hash → balance check → `TransactionRepository.create` (a flush) → the session dependency commits → the response → the broadcast to peers, as a background task (ADR-0007).
 
 **Peer calls.** Use cases call peers (`/transactions`, `/nodes/resolve`, `/blocks/full`). Today they import `httpx` directly, which breaks the application rule; VLA-19 moves the calls behind a `PeerClient` port in `domain/ports/services` with an httpx implementation in `infrastructure`.
 
-**Processes.** One API process (uvicorn). A `migrate` container runs Alembic once before the API starts (VLA-23). There are no background workers; broadcasts run as `asyncio` tasks inside the request's process.
+**Processes.** One API process (uvicorn). A `migrate` container runs Alembic once before the API starts (VLA-23). There are no background workers; broadcasts run as FastAPI background tasks in the API process, after the response, so peers only hear of committed data (ADR-0007).
 
 ## Data model
 
@@ -250,6 +250,8 @@ veriledger-api/
 ├── Makefile
 ├── pyproject.toml
 ├── uv.lock
+├── .python-version               # 3.12, read by uv
+├── .pre-commit-config.yaml       # Ruff hooks, same version as uv.lock
 ├── CLAUDE.md
 ├── CHANGELOG.md                  # VLA-30
 └── README.md
