@@ -29,3 +29,7 @@ migrate:
 
 seed:
 	uv run python -m backend.app.cli.seed
+
+# Run on a schedule in demo deployments (ADR-0006)
+purge-demo-accounts:
+	uv run python -m backend.app.cli.purge_demo_accounts

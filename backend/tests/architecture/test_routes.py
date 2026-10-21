@@ -22,6 +22,7 @@ ADMIN = frozenset({UserRole.ADMIN})
 ACCESS: dict[str, frozenset[UserRole] | None] = {
     "GET /health": None,
     "POST /auth/login": None,
+    "POST /auth/demo": None,
     "GET /auth/me": ANY_ROLE,
     "POST /users": ADMIN,
     "POST /wallets/generate": None,

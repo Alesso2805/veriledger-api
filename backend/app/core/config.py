@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
+    # Opens POST /auth/demo to anyone (ADR-0006); a node without it answers 404 there
+    demo_mode: bool = False
+
     # The nodes of one network need the same values, since a peer's blocks are checked against ours (VLA-18).
     # A SHA-256 hex digest has 64 characters, so no hash meets a higher difficulty
     mining_difficulty: int = Field(default=4, ge=1, le=64)

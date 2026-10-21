@@ -13,8 +13,12 @@ class UserCreateDTO(BaseModel):
 
 class UserResponseDTO(BaseModel):
     id: str
-    email: str
+    # Null for a demo account, whose display_name is "Guest XXXX"; otherwise the email
+    email: str | None
+    display_name: str
     role: UserRole
+    # Only a demo account expires
+    expires_at: datetime | None
     created_at: datetime
     updated_at: datetime
 

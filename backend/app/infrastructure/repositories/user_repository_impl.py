@@ -1,4 +1,7 @@
-from sqlalchemy import select
+from datetime import datetime
+from typing import Any, cast
+
+from sqlalchemy import CursorResult, delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.domain.entities.user import User
@@ -31,7 +34,13 @@ class UserRepositoryImpl(UserRepository):
             created_at=user.created_at,
             updated_at=user.updated_at,
             deleted_at=user.deleted_at,
+            expires_at=user.expires_at,
         )
         self.session.add(model)
         await self.session.flush()
         return model.to_entity()
+
+    async def delete_expired(self, now: datetime) -> int:
+        # Only the accounts: blocks and transactions refer to addresses, never to users, so the chain keeps them
+        result = await self.session.execute(delete(UserModel).where(UserModel.expires_at < now))
+        return cast(CursorResult[Any], result).rowcount

@@ -19,7 +19,8 @@ class LoginUseCase:
         if not user:
             raise ValueError("Invalid credentials")
 
-        if not self.password_hasher.verify_password(data.password, user.password_hash):
+        # A demo account has no password, so it never signs in here
+        if user.password_hash is None or not self.password_hasher.verify_password(data.password, user.password_hash):
             raise ValueError("Invalid credentials")
 
         token = self.token_service.create_access_token(subject=user.id, role=user.role.value)
