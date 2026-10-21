@@ -43,9 +43,6 @@ ACCESS: dict[str, frozenset[UserRole] | None] = {
 # Public routes that may be other than GET: signing in, and a key pair that writes nothing
 PUBLIC_NON_GET = {"POST /auth/login", "POST /auth/demo", "POST /wallets/generate"}
 
-# Known debt, one entry per route: any signed-in user can call them today. VLA-19 adds the roles.
-KNOWN_ROLE_VIOLATIONS = {"POST /blocks/mine", "POST /nodes/register", "POST /nodes/resolve"}
-
 
 def all_routes() -> dict[str, APIRoute]:
     # FastAPI keeps included routers as private objects in app.routes, so every router module is read instead
@@ -101,7 +98,7 @@ def test_ar08_every_route_requires_a_token_unless_it_is_public() -> None:
 def test_ar09_every_route_requires_the_roles_of_the_spec() -> None:
     routes = all_routes()
     assert set(routes) == set(ACCESS)
-    assert {name for name, route in routes.items() if roles(route) != ACCESS[name]} == KNOWN_ROLE_VIOLATIONS
+    assert {name for name, route in routes.items() if roles(route) != ACCESS[name]} == set()
 
 
 def test_ar10_every_route_declares_a_pydantic_response_model() -> None:
