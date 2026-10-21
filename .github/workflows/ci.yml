@@ -168,3 +168,45 @@ jobs:
           docker compose logs
           docker compose -f docker-compose.ghcr.yml logs
 
+  rehearsal:
+    name: rehearsal
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # The webapp build the rehearsal runs: its image tag and its smoke test come from the same commit
+      WEBAPP_COMMIT: 6d5a2f3d8c301a9376374194e72ee85e9cbbb295
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: The API image this commit would publish
+        run: docker build -t veriledger-api:rehearsal .
+
+      - name: Write deploy/.env as docs/runbooks/deploy.md does
+        run: |
+          cp deploy/.env.example deploy/.env
+          sed -i             -e "s/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=$(openssl rand -hex 24)/"             -e "s/^SECRET_KEY=$/SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')/"             -e "s/^ADMIN_EMAIL=$/ADMIN_EMAIL=operator@example.com/"             -e "s/^ADMIN_PASSWORD=$/ADMIN_PASSWORD=$(openssl rand -hex 16)/"             -e "s/^DOMAIN=$/DOMAIN=localhost/"             -e "s/^WEBAPP_IMAGE_TAG=main$/WEBAPP_IMAGE_TAG=sha-${WEBAPP_COMMIT:0:7}/"             deploy/.env
+
+      - name: Start it as the runbook does
+        run: API_IMAGE=veriledger-api API_IMAGE_TAG=rehearsal docker compose -f deploy/docker-compose.prod.yml up -d
+
+      - name: Trust Caddy's local CA, as a browser on this machine would
+        run: |
+          for i in $(seq 1 60); do
+            docker compose -f deploy/docker-compose.prod.yml exec -T caddy test -f /data/caddy/pki/authorities/local/root.crt && break
+            sleep 2
+          done
+          docker compose -f deploy/docker-compose.prod.yml cp caddy:/data/caddy/pki/authorities/local/root.crt caddy-root.crt
+
+      - name: deploy/verify.sh passes over verified HTTPS
+        run: |
+          set -a; . deploy/.env; set +a
+          CURL_CA_BUNDLE="$PWD/caddy-root.crt" sh deploy/verify.sh https://localhost
+
+      - name: The webapp passes its own smoke test behind Caddy
+        run: |
+          curl -fsSL -o webapp-smoke-test.sh "https://raw.githubusercontent.com/Alesso2805/veriledger-webapp/$WEBAPP_COMMIT/docker/smoke-test.sh"
+          CURL_CA_BUNDLE="$PWD/caddy-root.crt" sh webapp-smoke-test.sh https://localhost
+
+      - name: Logs
+        if: failure()
+        run: docker compose -f deploy/docker-compose.prod.yml logs
