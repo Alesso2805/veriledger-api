@@ -2,7 +2,7 @@
 
 Oct 20, 2026 · Sources: [SPEC.md](SPEC.md), [BACKLOG.md](BACKLOG.md), [CLAUDE.md](../CLAUDE.md), the README and [the ADRs](adr/).
 
-Each rule is one sentence that a test can prove or refute. A rule about "every" module, route, table or port is checked by a test that walks the whole list, so something new that breaks it fails without anyone adding a case. AR-01 to AR-05 (VLA-13) and AR-16 (VLA-32) have their tests; VLA-13 adds the others.
+Each rule is one sentence that a test can prove or refute. A rule about "every" module, route, table or port is checked by a test that walks the whole list, so something new that breaks it fails without anyone adding a case. AR-01 to AR-05 and AR-08 to AR-13 (VLA-13) and AR-16 (VLA-32) have their tests. AR-06, AR-07 and AR-15 come with VLA-13's last part, and AR-14 with VLA-15.
 
 ## Rules
 
@@ -15,7 +15,7 @@ Each rule is one sentence that a test can prove or refute. A rule about "every" 
 | AR-05 | Only `backend.app.main` imports `backend.app.presentation`. | SPEC › Architecture (`presentation` is the outer layer) | import-linter `forbidden` contract from `domain`, `application`, `infrastructure` and `core` to `presentation`. |
 | AR-06 | The SQLAlchemy models and the Alembic history describe the same schema. | SPEC › Data model › Rules | Integration test on Postgres: `alembic upgrade head`, then `alembic check` must report no new operations. Covers every table by construction. |
 | AR-07 | The migration history is reversible: `upgrade head → downgrade base → upgrade head` succeeds on Postgres and `downgrade base` leaves no table or enum type behind. | SPEC › Data model › Rules | Integration test on Postgres that runs the cycle and queries `pg_tables` and `pg_type` for leftovers. |
-| AR-08 | Every route requires a valid JWT except the public ones listed in SPEC › API contract: `/health`, `/auth/login`, `/auth/demo`, `/wallets/generate`, `/wallets/{address}/balance`, `/wallets/{address}/nonce`, `/wallets/{address}/transactions`, the OpenAPI docs, and from VLA-36 the reads of ADR-0006 (`GET /blocks…`, `GET /transactions…`, `GET /nodes`). No write route is public. | SPEC › API contract; ADR-0006 | Pytest: iterate every route (note under the table), walk each route's dependency tree and assert `get_current_user` is in it unless the method and path are in the public list; a second assertion fails on any public route whose method is not GET, except `/auth/login` and `/auth/demo`. |
+| AR-08 | Every route requires a valid JWT except the public ones listed in SPEC › API contract: `/health`, `/auth/login`, `/auth/demo`, `/wallets/generate`, `/wallets/{address}/balance`, `/wallets/{address}/nonce`, `/wallets/{address}/transactions`, the OpenAPI docs, and from VLA-36 the reads of ADR-0006 (`GET /blocks…`, `GET /transactions…`, `GET /nodes`). No write route is public. | SPEC › API contract; ADR-0006 | Pytest: iterate every route (note under the table), walk each route's dependency tree and assert `get_current_user` is in it unless the method and path are in the public list; a second assertion fails on any public route whose method is not GET, except `/auth/login`, `/auth/demo` and `/wallets/generate`, which writes nothing. |
 | AR-09 | Every route requires the roles of SPEC › Permissions by role; a demo account has exactly the `trader` role. | SPEC › Non-functional requirements › Permissions by role; ADR-0006 | Pytest: a table path → roles taken from SPEC; iterate every route (note under the table) and fail on a route missing from the table or with other roles. |
 | AR-10 | Every route declares a Pydantic response model. | SPEC › API contract ("the generated OpenAPI document is the contract") | Pytest: iterate every route (note under the table) and assert `route.response_model` is a `BaseModel` subclass (or a list of one). |
 | AR-11 | Every port in `domain/ports` has an implementation in `infrastructure`, and every repository implementation is `<Port>Impl` in `infrastructure/repositories/<name>_repository_impl.py`. | ADR-0001; naming convention of the code | Pytest: import every module, iterate the `ABC` subclasses defined in `domain/ports`, find their concrete subclasses and check module and name. |
@@ -23,9 +23,9 @@ Each rule is one sentence that a test can prove or refute. A rule about "every" 
 | AR-13 | Every table and column name is English `snake_case`, and every table has `created_at` and `updated_at`. | SPEC › Data model; SPEC › Conventions | Pytest: iterate `Base.metadata.sorted_tables` and their columns. |
 | AR-14 | The signed message of a transaction is built by one function, and it reproduces every vector of `docs/signing-vectors.json`. | SPEC › Signing and hashing contract; ADR-0004 (proposed) | Pytest: iterate the vectors; for each, build the message, compare it byte for byte and verify the signature. Verifiable once ADR-0004 is accepted and VLA-15 writes the vectors. |
 | AR-15 | With `APP_ENV=production`, the settings refuse a missing `SECRET_KEY`, the example value or one under 32 bytes. | SPEC › Non-functional requirements › Security; CLAUDE.md ("production refuses default secrets") | Pytest: build `Settings` for each bad case and expect a validation error. |
-| AR-16 | A request commits once, before its response: every route and dependency gets the session as `DbSession` (`Depends(get_db_session, scope="function")`), and no repository or use case calls `commit()`. | VLA-32; ADR-0007 | Pytest: walk every route's dependency tree and assert each `get_db_session` has scope `function` (`backend/tests/unit/presentation/test_db_session_dependency.py`). VLA-13 adds an `ast` check that nothing under `application` or `infrastructure/repositories` calls `commit`. |
+| AR-16 | A request commits once, before its response: every route and dependency gets the session as `DbSession` (`Depends(get_db_session, scope="function")`), and no repository or use case calls `commit()`. | VLA-32; ADR-0007 | Pytest: walk every route's dependency tree and assert each `get_db_session` has scope `function` (`backend/tests/architecture/test_routes.py`), and an `ast` walk that finds no `commit` call under `application` or `infrastructure/repositories` (`test_ports_and_use_cases.py`). |
 
-**Every route.** Since FastAPI 0.140, `app.routes` holds included routers as private objects, not their routes. A test over every route reads `app.router.routes` plus the routes of every `APIRouter` defined in the modules of `presentation/api`, as AR-16's test does, so a new router is covered without being listed.
+**Every route.** Since FastAPI 0.140, `app.routes` holds included routers as private objects, not their routes. A test over every route reads `app.router.routes` plus the routes of every `APIRouter` defined in the modules of `presentation/api`, as `test_routes.py` does, so a new router is covered without being listed.
 
 ## Promises that are not verifiable as written
 
@@ -61,16 +61,15 @@ Alternatives considered: only Pytest with `ast` (no new dependency, but transiti
 | --- | --- |
 | `pyproject.toml` › `[tool.importlinter]` (`lint-imports`) | AR-03, AR-04, AR-05 |
 | `backend/tests/architecture/test_imports.py` | AR-01, AR-02 |
-| `backend/tests/architecture/test_routes.py` | AR-08, AR-09, AR-10 |
-| `backend/tests/architecture/test_ports_and_use_cases.py` | AR-11, AR-12 |
+| `backend/tests/architecture/test_routes.py` | AR-08, AR-09, AR-10, AR-16 |
+| `backend/tests/architecture/test_ports_and_use_cases.py` | AR-11, AR-12, AR-16 (no `commit`) |
 | `backend/tests/architecture/test_schema_names.py` | AR-13 |
 | `backend/tests/integration/test_migrations.py` | AR-06, AR-07 |
 | `backend/tests/unit/test_signing_vectors.py` | AR-14 |
 | `backend/tests/unit/core/test_settings.py` | AR-15 |
-| `backend/tests/unit/presentation/test_db_session_dependency.py` | AR-16 |
 
 **Rules that fail today, and how their tests say so.** CI stays green and the debt stays visible, and removing it is part of the fixing story's DoD:
 
-- A rule over a list pins today's violations one by one, with the story that removes them. A new violation fails at once, and a fixed one fails until its entry is removed. AR-02: `mine_block.py`, `submit_transaction.py` and `resolve_conflicts.py` import `httpx` (VLA-19).
-- A rule with no list to pin is marked `xfail(strict=True)` with its story, so it fails once it passes: AR-07 (the enum left behind), AR-09 (roles), AR-10 (two routes without a response model), AR-14 and AR-15.
-- AR-03 failed because of the seed in `infrastructure`; VLA-13 moved it to `backend/app/cli/seed.py`.
+- A rule over a list pins today's violations one by one, with the story that removes them. A new violation fails at once, and a fixed one fails until its entry is removed. AR-02: `mine_block.py`, `submit_transaction.py` and `resolve_conflicts.py` import `httpx` (VLA-19). AR-09: `POST /blocks/mine`, `POST /nodes/register` and `POST /nodes/resolve` accept any signed-in user (VLA-19).
+- A rule with no list to pin is marked `xfail(strict=True)` with its story, so it fails once it passes: AR-07 (the enum left behind), AR-14 and AR-15.
+- Fixed by VLA-13 itself: AR-03, by moving the seed to `backend/app/cli/seed.py`, and AR-10, by giving `GET /wallets/{address}/balance` and `POST /nodes/resolve` a response model (the JSON is the same).

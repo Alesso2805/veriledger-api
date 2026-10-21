@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.app.application.dto.wallet import WalletKeyPairDTO
+from backend.app.application.dto.wallet import BalanceResponseDTO, WalletKeyPairDTO
 from backend.app.application.use_cases.wallet.generate_wallet import GenerateWalletUseCase
 from backend.app.application.use_cases.wallet.get_balance import GetBalanceUseCase
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
@@ -23,12 +23,12 @@ async def generate_wallet() -> WalletKeyPairDTO:
     return use_case.execute()
 
 
-@router.get("/{address}/balance")
+@router.get("/{address}/balance", response_model=BalanceResponseDTO)
 async def get_balance(
     address: str,
     db: DbSession,
-) -> dict[str, str | float]:
+) -> BalanceResponseDTO:
     tx_repo = TransactionRepositoryImpl(db)
     use_case = GetBalanceUseCase(tx_repo)
     balance = await use_case.execute(address)
-    return {"address": address, "balance": balance}
+    return BalanceResponseDTO(address=address, balance=balance)

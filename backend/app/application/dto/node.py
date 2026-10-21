@@ -9,3 +9,8 @@ class NodeResponseDTO(BaseModel):
     id: str
     url: str
     status: str
+
+
+class ResolveConflictsResponseDTO(BaseModel):
+    message: str
+    replaced: bool
