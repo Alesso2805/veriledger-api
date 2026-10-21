@@ -1,0 +1,12 @@
+# Only what the image runs: pyproject.toml, uv.lock, .python-version and backend/ without its tests
+.env
+.git
+.github
+.venv
+.mypy_cache
+.pytest_cache
+.ruff_cache
+**/__pycache__
+backend/tests
+docs
+*.md

@@ -76,7 +76,7 @@ The admin seed lives in `backend/app/cli/seed.py`. Like the routers, it is a com
 
 **Adopting a chain.** Each adopted transaction keeps its payload and nonce. A pending transaction that the new chain already holds, or whose nonce it used, leaves the mempool, since it can no longer be mined.
 
-**Processes.** One API process (uvicorn). A `migrate` container runs Alembic once before the API starts (VLA-23). There are no background workers; broadcasts run as FastAPI background tasks in the API process, after the response, so peers only hear of committed data (ADR-0007). The Proof of Work runs in a worker thread of the same process, so the event loop keeps answering while a block is mined (ADR-0008).
+**Processes.** One API process (uvicorn), in the image of `Dockerfile` (VLA-22): uv builds the virtual environment from `uv.lock` with `--frozen --no-dev` on the base image's Python 3.12.13, and the final stage keeps only that environment and `backend/`, without uv, the tests or `.env`; it runs as uid 10001, without `--reload`, with a `HEALTHCHECK` on `/health`; both bases are pinned by digest. The Image workflow publishes it for amd64 and arm64 to `ghcr.io/alesso2805/veriledger-api`, tagged `main` and `sha-<commit>` on every push to main and with the version on a release tag; the webapp's end-to-end CI pulls it. A `migrate` container runs Alembic once before the API starts (VLA-23). There are no background workers; broadcasts run as FastAPI background tasks in the API process, after the response, so peers only hear of committed data (ADR-0007). The Proof of Work runs in a worker thread of the same process, so the event loop keeps answering while a block is mined (ADR-0008).
 
 ## Data model
 
@@ -192,7 +192,7 @@ The active count is read from the database. The other two are counted by a slidi
 | Security | Only a node holding the peer token submits or asks for a resolve without a user, and the token opens no other route | `test_peer_token.py`, AR-08, and two running nodes in `test_two_nodes.py` (VLA-19) |
 | Security | Login and transaction submission are rate limited | 429 tests (VLA-29) |
 | Security | The public demo cannot be flooded with accounts or mining | `test_demo_limits.py`: each limit's 429 and `Retry-After`, another address not held back, 0 turns a limit off (VLA-35) |
-| Reproducibility | The image installs exactly `uv.lock` and the app imports with runtime dependencies only | CI builds the image and imports the app (VLA-11, VLA-22) |
+| Reproducibility | The image installs exactly `uv.lock` and the app imports with runtime dependencies only | CI's `image` job builds the image, imports the app inside it, checks that it runs as uid 10001 and waits for its healthcheck (VLA-11, VLA-22) |
 | Deployment | `docker compose up` applies migrations before the API starts | Startup from an empty database in CI (VLA-23) |
 | Observability | JSON logs in production with a request id; `/health` reports the database | Log and health tests (VLA-26) |
 | Quality | Ruff and Mypy strict without errors; architecture tests green; coverage ≥ 80 % in `domain` and `application` | GitHub Actions (VLA-10, VLA-12, VLA-13) |
@@ -269,9 +269,11 @@ veriledger-api/
 │   ├── adr/
 │   ├── runbooks/                 # VLA-28
 │   └── sprints/
-├── .github/workflows/ci.yml      # lint, format, types, tests on Postgres
+├── .github/workflows/ci.yml      # lint, format, types, tests on Postgres; the image job (VLA-22)
+├── .github/workflows/image.yml   # publishes the image to GHCR (VLA-22)
 ├── docker-compose.yml            # with the migrate service (VLA-23)
-├── Dockerfile
+├── Dockerfile                    # two stages, non-root, bases pinned by digest (VLA-22)
+├── .dockerignore
 ├── Makefile
 ├── pyproject.toml
 ├── uv.lock
