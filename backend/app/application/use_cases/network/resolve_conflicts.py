@@ -1,15 +1,15 @@
 from typing import Any
 
-import httpx
-
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
+from backend.app.domain.ports.services.peer_client import PeerClient
 
 
 class ResolveConflictsUseCase:
-    def __init__(self, node_repo: NodeRepository, block_repo: BlockRepository):
+    def __init__(self, node_repo: NodeRepository, block_repo: BlockRepository, peer_client: PeerClient):
         self._node_repo = node_repo
         self._block_repo = block_repo
+        self._peer_client = peer_client
 
     async def execute(self) -> bool:
         """
@@ -17,24 +17,16 @@ class ResolveConflictsUseCase:
         Returns True if our chain was replaced.
         """
         nodes = await self._node_repo.get_all()
-        our_blocks = await self._block_repo.get_all_blocks()
-        max_length = len(our_blocks)
+        # The whole local chain, not one page of it
+        max_length = await self._block_repo.count()
         new_chain: list[dict[str, Any]] | None = None
 
-        async with httpx.AsyncClient() as client:
-            for node in nodes:
-                try:
-                    response = await client.get(f"{node.url}/blocks/full")
-                    if response.status_code == 200:
-                        data = response.json()
-                        length = data.get("total", 0)
-                        items = data.get("items", [])
-
-                        if length > max_length and self._is_valid_chain(items):
-                            max_length = length
-                            new_chain = items
-                except httpx.RequestError:
-                    continue
+        for node in nodes:
+            chain = await self._peer_client.fetch_chain(node.url)
+            # The length is what was fetched, never the total a peer claims
+            if chain is not None and len(chain) > max_length and self._is_valid_chain(chain):
+                max_length = len(chain)
+                new_chain = chain
 
         if new_chain:
             await self._block_repo.replace_chain(new_chain)

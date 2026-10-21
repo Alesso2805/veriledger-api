@@ -1,8 +1,5 @@
-import asyncio
 import uuid
 from datetime import UTC, datetime
-
-import httpx
 
 from backend.app.application.dto.block import BlockResponseDTO
 from backend.app.domain.entities.block import Block
@@ -13,6 +10,7 @@ from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.consensus import ConsensusService
 from backend.app.domain.ports.services.hashing import HasherService
+from backend.app.domain.ports.services.peer_client import PeerClient
 
 
 class MineBlockUseCase:
@@ -23,12 +21,14 @@ class MineBlockUseCase:
         consensus_service: ConsensusService,
         hasher: HasherService,
         node_repo: NodeRepository | None = None,
+        peer_client: PeerClient | None = None,
     ):
         self.block_repo = block_repo
         self.tx_repo = tx_repo
         self.consensus_service = consensus_service
         self.hasher = hasher
         self.node_repo = node_repo
+        self.peer_client = peer_client
         self._peers: list[Node] = []
 
     async def execute(self, miner_address: str) -> BlockResponseDTO:
@@ -107,13 +107,6 @@ class MineBlockUseCase:
         )
 
     async def broadcast_block(self) -> None:
-        nodes = self._peers
-        if not nodes:
-            return
-
-        async with httpx.AsyncClient() as client:
-            tasks = []
-            for node in nodes:
-                # Trigger peers to resolve conflicts with our new chain
-                tasks.append(client.post(f"{node.url}/nodes/resolve"))
-            await asyncio.gather(*tasks, return_exceptions=True)
+        # Peers fetch our chain themselves: a new block only asks them to resolve
+        if self._peers and self.peer_client:
+            await self.peer_client.request_resolve([node.url for node in self._peers])

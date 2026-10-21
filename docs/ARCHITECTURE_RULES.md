@@ -70,6 +70,6 @@ Alternatives considered: only Pytest with `ast` (no new dependency, but transiti
 
 **Rules that fail today, and how their tests say so.** CI stays green and the debt stays visible, and removing it is part of the fixing story's DoD:
 
-- A rule over a list pins today's violations one by one, with the story that removes them. A new violation fails at once, and a fixed one fails until its entry is removed. AR-02: `mine_block.py`, `submit_transaction.py` and `resolve_conflicts.py` import `httpx` (VLA-19). AR-09: `POST /blocks/mine`, `POST /nodes/register` and `POST /nodes/resolve` accept any signed-in user (VLA-19).
+- A rule over a list pins today's violations one by one, with the story that removes them. A new violation fails at once, and a fixed one fails until its entry is removed. AR-09: `POST /blocks/mine`, `POST /nodes/register` and `POST /nodes/resolve` accept any signed-in user (VLA-19).
 - A rule with no list to pin is marked `xfail(strict=True)` with its story, so it fails once it passes: AR-07 (the ledger migration's downgrade leaves the `transactionstatus` enum behind, VLA-25) and AR-15 (VLA-21).
-- Fixed by VLA-13 itself: AR-03, by moving the seed to `backend/app/cli/seed.py`, and AR-10, by giving `GET /wallets/{address}/balance` and `POST /nodes/resolve` a response model (the JSON is the same).
+- Fixed since: AR-02 by VLA-19, whose `PeerClient` port took `httpx` out of the use cases. Fixed by VLA-13 itself: AR-03, by moving the seed to `backend/app/cli/seed.py`, and AR-10, by giving `GET /wallets/{address}/balance` and `POST /nodes/resolve` a response model (the JSON is the same).

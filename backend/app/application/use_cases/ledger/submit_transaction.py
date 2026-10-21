@@ -1,8 +1,5 @@
-import asyncio
 import uuid
 from datetime import UTC, datetime
-
-import httpx
 
 from backend.app.application.dto.transaction import TransactionCreateRequestDTO
 from backend.app.domain.entities.node import Node
@@ -11,6 +8,7 @@ from backend.app.domain.errors import NonceConflictError
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.hashing import HasherService
+from backend.app.domain.ports.services.peer_client import PeerClient
 from backend.app.domain.ports.services.signature import SignatureService
 from backend.app.domain.signed_message import build_signed_message, next_nonce
 
@@ -22,11 +20,13 @@ class SubmitTransactionUseCase:
         hasher: HasherService,
         signature_service: SignatureService,
         node_repo: NodeRepository | None = None,
+        peer_client: PeerClient | None = None,
     ):
         self.tx_repo = tx_repo
         self.hasher = hasher
         self.signature_service = signature_service
         self.node_repo = node_repo
+        self.peer_client = peer_client
         self._peers: list[Node] = []
 
     async def execute(self, request: TransactionCreateRequestDTO) -> tuple[Transaction, bool]:
@@ -86,15 +86,5 @@ class SubmitTransactionUseCase:
         return created_tx, True
 
     async def broadcast_transaction(self, request: TransactionCreateRequestDTO) -> None:
-        nodes = self._peers
-        if not nodes:
-            return
-
-        payload = request.model_dump()
-        async with httpx.AsyncClient() as client:
-            tasks = []
-            for node in nodes:
-                # Peers require a JWT this call does not send, so the broadcast fails between
-                # authenticated nodes until VLA-19 adds a peer token
-                tasks.append(client.post(f"{node.url}/transactions", json=payload))
-            await asyncio.gather(*tasks, return_exceptions=True)
+        if self._peers and self.peer_client:
+            await self.peer_client.send_transaction([node.url for node in self._peers], request.model_dump())

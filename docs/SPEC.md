@@ -65,7 +65,7 @@ The admin seed lives in `backend/app/cli/seed.py`. Like the routers, it is a com
 
 **Request flow (submit a transfer).** Router → `SubmitTransactionUseCase` → rebuild the signed message → `SignatureService.verify_signature` → `HasherService.hash_transaction` → duplicate check by hash → balance check → `TransactionRepository.create` (a flush) → the session dependency commits → the response → the broadcast to peers, as a background task (ADR-0007).
 
-**Peer calls.** Use cases call peers (`/transactions`, `/nodes/resolve`, `/blocks/full`). Today they import `httpx` directly, which breaks the application rule; VLA-19 moves the calls behind a `PeerClient` port in `domain/ports/services` with an httpx implementation in `infrastructure`.
+**Peer calls.** Use cases call peers through the `PeerClient` port (`domain/ports/services/peer_client.py`), implemented with httpx in `infrastructure/peers/`. They offer new transactions (`POST /transactions`), ask peers to resolve after a new block (`POST /nodes/resolve`), and read a peer's whole chain, page by page, from `GET /blocks/full` to resolve conflicts. A peer's chain is as long as what was fetched, never the `total` it claims, and it is compared with our whole chain, not one page.
 
 **Processes.** One API process (uvicorn). A `migrate` container runs Alembic once before the API starts (VLA-23). There are no background workers; broadcasts run as FastAPI background tasks in the API process, after the response, so peers only hear of committed data (ADR-0007).
 

@@ -4,6 +4,7 @@ from backend.app.application.dto.node import NodeCreateRequestDTO, NodeResponseD
 from backend.app.application.use_cases.network.register_node import RegisterNodeUseCase
 from backend.app.application.use_cases.network.resolve_conflicts import ResolveConflictsUseCase
 from backend.app.domain.entities.user import User
+from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.presentation.dependencies.auth import get_current_user
@@ -44,7 +45,7 @@ async def resolve_conflicts(
 ) -> ResolveConflictsResponseDTO:
     node_repo = NodeRepositoryImpl(db)
     block_repo = BlockRepositoryImpl(db)
-    use_case = ResolveConflictsUseCase(node_repo, block_repo)
+    use_case = ResolveConflictsUseCase(node_repo, block_repo, HttpxPeerClient())
 
     replaced = await use_case.execute()
     message = "Our chain was replaced" if replaced else "Our chain is authoritative"
