@@ -7,6 +7,8 @@ DEVELOPMENT_SECRET_KEY = "supersecretkey"
 # The value .env.example ships, which anyone can read
 EXAMPLE_SECRET_KEY = "supersecretkey_change_me_in_production"
 MIN_SECRET_KEY_BYTES = 32
+# The seed's development password, which production refuses (VLA-24)
+DEVELOPMENT_ADMIN_PASSWORD = "adminpassword123"
 
 
 class Settings(BaseSettings):
@@ -19,6 +21,10 @@ class Settings(BaseSettings):
     secret_key: str = DEVELOPMENT_SECRET_KEY
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+
+    # The admin the seed creates once (VLA-24); production refuses the development password
+    admin_email: str = "admin@veriledger.com"
+    admin_password: str = DEVELOPMENT_ADMIN_PASSWORD
 
     # Comma-separated browser origins allowed to call the API; behind Caddy the webapp shares its origin (ADR-0005)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"

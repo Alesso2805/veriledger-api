@@ -10,6 +10,9 @@ x-app: &app
     APP_DEBUG: "true"
     # Comma-separated; the webapp's end-to-end CI adds its preview origin, e.g. http://127.0.0.1:4173
     CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    # The admin the migrate service seeds; these defaults are for development only
+    ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@veriledger.com}
+    ADMIN_PASSWORD: ${ADMIN_PASSWORD:-adminpassword123}
     # Peers on this machine or the Compose network (VLA-19); never in production
     ALLOW_PRIVATE_PEERS: "true"
     PEER_TOKEN: ${PEER_TOKEN:-}
@@ -41,7 +44,8 @@ services:
   # Runs the migrations once and exits; the API starts only if it succeeds
   migrate:
     <<: *app
-    command: ["alembic", "-c", "backend/alembic.ini", "upgrade", "head"]
+    # Migrates, then creates the admin once (VLA-24); the API starts only if both succeed
+    command: ["sh", "-c", "alembic -c backend/alembic.ini upgrade head && python -m backend.app.cli.seed"]
     depends_on:
       postgres:
         condition: service_healthy

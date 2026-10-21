@@ -118,6 +118,8 @@ jobs:
           # The API started because migrate succeeded, so the tables are there
           test "$(docker compose ps -a migrate --format '{{.ExitCode}}')" = 0
           curl -fsS http://127.0.0.1:8000/blocks
+          # migrate also seeded the development admin (VLA-24)
+          curl -fsS -d 'username=admin@veriledger.com&password=adminpassword123' http://127.0.0.1:8000/auth/login
 
       - name: The production file is complete
         run: |

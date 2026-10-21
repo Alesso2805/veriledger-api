@@ -99,3 +99,12 @@ def test_cors_origins_are_a_comma_separated_list(monkeypatch: pytest.MonkeyPatch
     assert Settings(database_url=DATABASE_URL).cors_origin_list == ["http://localhost:5173", "http://127.0.0.1:5173"]
     monkeypatch.setenv("CORS_ORIGINS", " http://127.0.0.1:4173, http://localhost:4173 ,")
     assert Settings(database_url=DATABASE_URL).cors_origin_list == ["http://127.0.0.1:4173", "http://localhost:4173"]
+
+
+def test_the_admin_defaults_are_for_development(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("ADMIN_EMAIL", "ADMIN_PASSWORD"):
+        monkeypatch.delenv(name, raising=False)
+    settings = Settings(database_url=DATABASE_URL)
+    assert (settings.admin_email, settings.admin_password) == ("admin@veriledger.com", "adminpassword123")
+    monkeypatch.setenv("ADMIN_EMAIL", "operator@example.com")
+    assert Settings(database_url=DATABASE_URL).admin_email == "operator@example.com"
