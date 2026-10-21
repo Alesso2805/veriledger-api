@@ -4,6 +4,7 @@ from unittest.mock import create_autospec
 import pytest
 
 from backend.app.application.use_cases.network.resolve_conflicts import ResolveConflictsUseCase
+from backend.app.domain.chain_validator import ChainValidator
 from backend.app.domain.entities.node import Node
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
@@ -37,10 +38,20 @@ def chain(length: int, prefix: str = "h") -> list[dict[str, Any]]:
     ]
 
 
-def use_case(node_repo: Any, block_repo: Any, peer_client: Any, local_length: int, chains: dict[str, Any]) -> Any:
+def use_case(
+    node_repo: Any,
+    block_repo: Any,
+    peer_client: Any,
+    local_length: int,
+    chains: dict[str, Any],
+    refused: dict[int, str] | None = None,
+) -> Any:
     block_repo.count.return_value = local_length
     peer_client.fetch_chain.side_effect = lambda url: chains[url]
-    return ResolveConflictsUseCase(node_repo, block_repo, peer_client)
+    # The validator's own rules have their tests; here it refuses the chains named by id
+    validator = create_autospec(ChainValidator, instance=True)
+    validator.violation.side_effect = lambda chain: (refused or {}).get(id(chain))
+    return ResolveConflictsUseCase(node_repo, block_repo, peer_client, validator)
 
 
 @pytest.mark.asyncio
@@ -69,12 +80,18 @@ async def test_the_longest_valid_chain_among_peers_is_adopted(
 
 
 @pytest.mark.asyncio
-async def test_a_longer_chain_that_does_not_link_up_is_not_adopted(
+async def test_a_longer_chain_the_validator_refuses_is_not_adopted(
     mock_node_repo: Any, mock_block_repo: Any, mock_peer_client: Any
 ) -> None:
-    broken = chain(5)
-    broken[2]["previous_hash"] = "forged"
-    resolve = use_case(mock_node_repo, mock_block_repo, mock_peer_client, 1, {"http://a": broken, "http://b": None})
+    forged = chain(5)
+    resolve = use_case(
+        mock_node_repo,
+        mock_block_repo,
+        mock_peer_client,
+        1,
+        {"http://a": forged, "http://b": None},
+        refused={id(forged): "block 2 does not point at block 1"},
+    )
 
     assert await resolve.execute() is False
     mock_block_repo.replace_chain.assert_not_called()
@@ -98,3 +115,21 @@ async def test_our_length_is_the_whole_chain_not_one_page(
 
     assert await resolve.execute() is False
     mock_block_repo.get_all_blocks.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_a_refused_longer_chain_does_not_hide_a_valid_shorter_one(
+    mock_node_repo: Any, mock_block_repo: Any, mock_peer_client: Any
+) -> None:
+    forged, valid = chain(6), chain(4, "b")
+    resolve = use_case(
+        mock_node_repo,
+        mock_block_repo,
+        mock_peer_client,
+        2,
+        {"http://a": forged, "http://b": valid},
+        refused={id(forged): "block 5's hash does not match its contents"},
+    )
+
+    assert await resolve.execute() is True
+    mock_block_repo.replace_chain.assert_called_once_with(valid)
