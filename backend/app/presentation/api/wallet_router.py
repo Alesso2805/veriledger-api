@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, status
 
 from backend.app.application.dto.transaction import PaginatedTransactionResponseDTO
 from backend.app.application.dto.wallet import BalanceResponseDTO, NonceResponseDTO, WalletKeyPairDTO
@@ -6,6 +6,7 @@ from backend.app.application.use_cases.wallet.generate_wallet import GenerateWal
 from backend.app.application.use_cases.wallet.get_balance import GetBalanceUseCase
 from backend.app.application.use_cases.wallet.get_next_nonce import GetNextNonceUseCase
 from backend.app.application.use_cases.wallet.list_address_transactions import ListAddressTransactionsUseCase
+from backend.app.core.config import settings
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.security.ed25519_service import Ed25519ServiceImpl
@@ -20,6 +21,8 @@ async def generate_wallet() -> WalletKeyPairDTO:
     Development helper. The private key travels over the network, so production answers 404 (VLA-21)
     and the webapp generates keys in the browser (VLW-16).
     """
+    if settings.app_env != "development":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
     wallet_service = Ed25519ServiceImpl()
     use_case = GenerateWalletUseCase(wallet_service)
 

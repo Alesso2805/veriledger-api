@@ -1,15 +1,27 @@
-from pydantic import Field
+from typing import Self
+
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+DEVELOPMENT_SECRET_KEY = "supersecretkey"
+# The value .env.example ships, which anyone can read
+EXAMPLE_SECRET_KEY = "supersecretkey_change_me_in_production"
+MIN_SECRET_KEY_BYTES = 32
 
 
 class Settings(BaseSettings):
     app_env: str = "development"
-    app_debug: bool = True
+    # Off unless asked for: it echoes every SQL statement
+    app_debug: bool = False
     database_url: str
 
-    secret_key: str = "supersecretkey"  # Development default; VLA-21 makes production refuse it
+    # Development only: production refuses it (VLA-21)
+    secret_key: str = DEVELOPMENT_SECRET_KEY
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+
+    # Comma-separated browser origins allowed to call the API; behind Caddy the webapp shares its origin (ADR-0005)
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     # Opens POST /auth/demo to anyone (ADR-0006); a node without it answers 404 there
     demo_mode: bool = False
@@ -29,6 +41,23 @@ class Settings(BaseSettings):
     allow_private_peers: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @model_validator(mode="after")
+    def refuse_an_unsafe_secret_key_in_production(self) -> Self:
+        # Anyone who knows the key signs tokens for any user, so production does not start with a guessable one
+        if self.app_env == "production" and (
+            self.secret_key in (DEVELOPMENT_SECRET_KEY, EXAMPLE_SECRET_KEY)
+            or len(self.secret_key.encode("utf-8")) < MIN_SECRET_KEY_BYTES
+        ):
+            raise ValueError(
+                f"SECRET_KEY must be set in production to at least {MIN_SECRET_KEY_BYTES} random bytes; "
+                "the development default and the example value are refused"
+            )
+        return self
 
 
 settings = Settings()
