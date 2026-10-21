@@ -8,7 +8,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from backend.app.domain.entities.block import Block
 from backend.app.domain.entities.transaction import TransactionStatus
+from backend.app.domain.errors import BlockHeightTakenError
 from backend.app.infrastructure.database import Base
 from backend.app.infrastructure.models.block_model import BlockModel
 from backend.app.infrastructure.models.transaction_model import TransactionModel
@@ -131,3 +133,17 @@ async def test_an_adopted_chain_keeps_payloads_and_nonces_and_takes_the_place_of
     rows = {tx.id: tx for tx in (await session.execute(select(TransactionModel))).scalars()}
     assert set(rows) == {"theirs", "bobs", "our-next"}
     assert (rows["theirs"].payload, rows["theirs"].nonce) == ("document-hash", 1)
+
+
+@pytest.mark.asyncio
+async def test_a_second_block_at_the_same_height_is_refused(session: AsyncSession) -> None:
+    def block(block_id: str, block_hash: str) -> Block:
+        return Block(
+            id=block_id, block_number=1, previous_hash="0" * 64, timestamp=datetime(2026, 10, 21), block_hash=block_hash
+        )
+
+    repo = BlockRepositoryImpl(session)
+    await repo.create(block("first", "0000" + "a" * 60))
+
+    with pytest.raises(BlockHeightTakenError, match="Block 1 was just mined"):
+        await repo.create(block("second", "0000" + "b" * 60))
