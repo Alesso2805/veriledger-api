@@ -24,7 +24,6 @@ async def test_resolve_conflicts_no_replacement(mock_node_repo: Any, mock_block_
     use_case = ResolveConflictsUseCase(mock_node_repo, mock_block_repo)
 
     mock_node_repo.get_all.return_value = [Node(id="1", url="http://test", status="ACTIVE")]
-    # Our chain has length 5
     mock_block_repo.get_all_blocks.return_value = [MagicMock()] * 5
 
     # Remote chain has length 3, so we won't replace
@@ -44,10 +43,8 @@ async def test_resolve_conflicts_replacement(mock_node_repo: Any, mock_block_rep
     use_case = ResolveConflictsUseCase(mock_node_repo, mock_block_repo)
 
     mock_node_repo.get_all.return_value = [Node(id="1", url="http://test", status="ACTIVE")]
-    # Our chain has length 5
     mock_block_repo.get_all_blocks.return_value = [MagicMock()] * 5
 
-    # Remote chain has length 10
     valid_chain = [{"block_hash": "hash2", "previous_hash": "hash1"}, {"block_hash": "hash1", "previous_hash": "hash0"}]
 
     mock_response = MagicMock()
