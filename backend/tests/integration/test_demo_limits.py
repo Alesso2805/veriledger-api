@@ -115,3 +115,19 @@ async def test_zero_turns_each_limit_off(
     assert accounts == [201] * 6
     assert mines == [200] * 11
     assert await users(postgres) == 7
+
+
+async def test_a_limit_of_one_block_reads_in_the_singular(
+    async_client: AsyncClient,
+    postgres: async_sessionmaker[AsyncSession],
+    demo_mode: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "demo_mines_per_hour", 1)
+    as_demo = await demo_headers(async_client)
+
+    first = await async_client.post("/blocks/mine", json=MINE, headers=as_demo)
+    refused = await async_client.post("/blocks/mine", json=MINE, headers=as_demo)
+
+    assert first.status_code == 200
+    assert refused.json()["detail"] == "A demo account can mine 1 block per hour; try again later"

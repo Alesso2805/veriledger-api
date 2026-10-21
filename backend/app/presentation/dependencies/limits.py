@@ -46,4 +46,5 @@ def enforce_demo_mining_limit(user: User) -> None:
     limit = settings.demo_mines_per_hour
     retry_after = demo_limiter.hit(f"mining by {user.id}", limit, HOUR)
     if retry_after is not None:
-        raise too_many_requests(f"A demo account can mine {limit} blocks per hour; try again later", retry_after)
+        blocks = "block" if limit == 1 else "blocks"
+        raise too_many_requests(f"A demo account can mine {limit} {blocks} per hour; try again later", retry_after)
