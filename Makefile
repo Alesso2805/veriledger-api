@@ -30,6 +30,10 @@ migrate:
 seed:
 	uv run python -m backend.app.cli.seed
 
+# docs/openapi.json, the contract the webapp generates its types from (VLA-37)
+openapi:
+	DATABASE_URL=$${DATABASE_URL:-sqlite+aiosqlite:///:memory:} uv run python -m backend.app.openapi_document
+
 # Run on a schedule in demo deployments (ADR-0006)
 purge-demo-accounts:
 	uv run python -m backend.app.cli.purge_demo_accounts
