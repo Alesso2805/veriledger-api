@@ -2,7 +2,7 @@
 
 Oct 20, 2026 · Sources: [SPEC.md](SPEC.md), [BACKLOG.md](BACKLOG.md), [CLAUDE.md](../CLAUDE.md), the README and [the ADRs](adr/).
 
-Each rule is one sentence that a test can prove or refute. A rule about "every" module, route, table or port is checked by a test that walks the whole list, so something new that breaks it fails without anyone adding a case. AR-01 to AR-05 and AR-08 to AR-13 (VLA-13) and AR-16 (VLA-32) have their tests. AR-06, AR-07 and AR-15 come with VLA-13's last part, and AR-14 with VLA-15.
+Each rule is one sentence that a test can prove or refute. A rule about "every" module, route, table or port is checked by a test that walks the whole list, so something new that breaks it fails without anyone adding a case. Every rule has its test except AR-14, which comes with VLA-15 and its vectors: VLA-13 wrote AR-01 to AR-13 and AR-15, and VLA-32 wrote AR-16.
 
 ## Rules
 
@@ -71,5 +71,5 @@ Alternatives considered: only Pytest with `ast` (no new dependency, but transiti
 **Rules that fail today, and how their tests say so.** CI stays green and the debt stays visible, and removing it is part of the fixing story's DoD:
 
 - A rule over a list pins today's violations one by one, with the story that removes them. A new violation fails at once, and a fixed one fails until its entry is removed. AR-02: `mine_block.py`, `submit_transaction.py` and `resolve_conflicts.py` import `httpx` (VLA-19). AR-09: `POST /blocks/mine`, `POST /nodes/register` and `POST /nodes/resolve` accept any signed-in user (VLA-19).
-- A rule with no list to pin is marked `xfail(strict=True)` with its story, so it fails once it passes: AR-07 (the enum left behind), AR-14 and AR-15.
+- A rule with no list to pin is marked `xfail(strict=True)` with its story, so it fails once it passes: AR-07 (the ledger migration's downgrade leaves the `transactionstatus` enum behind, VLA-25) and AR-15 (VLA-21). AR-14 gets its test with VLA-15.
 - Fixed by VLA-13 itself: AR-03, by moving the seed to `backend/app/cli/seed.py`, and AR-10, by giving `GET /wallets/{address}/balance` and `POST /nodes/resolve` a response model (the JSON is the same).
