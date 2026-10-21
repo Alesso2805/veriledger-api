@@ -72,8 +72,9 @@ With `DEMO_MODE=true`, expired demo accounts should be deleted every hour (ADR-0
 
 ## 6. Update
 
-1. Set the new `API_IMAGE_TAG` and `WEBAPP_IMAGE_TAG` in `deploy/.env`.
-2. Run:
+1. Back up first, since the migrations only go forward: `sh deploy/backup.sh` ([backup-and-restore.md](backup-and-restore.md)).
+2. Set the new `API_IMAGE_TAG` and `WEBAPP_IMAGE_TAG` in `deploy/.env`.
+3. Run:
 
    ```bash
    docker compose -f deploy/docker-compose.prod.yml pull
@@ -85,7 +86,12 @@ With `DEMO_MODE=true`, expired demo accounts should be deleted every hour (ADR-0
 
 ## 7. Roll back
 
-Set the previous tags and run `up -d` again. The migrations only go forward. If the new version migrated the database, restore the backup taken before the update (VLA-28's runbook) before starting the old version.
+Set the previous tags and run `up -d` again. The migrations only go forward. If the new version migrated the database, restore the dump taken before the update ([backup-and-restore.md](backup-and-restore.md)) before starting the old version.
+
+## Afterwards
+
+- Back up every night: [backup-and-restore.md](backup-and-restore.md).
+- Rotate a secret: [rotate-secrets.md](rotate-secrets.md).
 
 ## Rehearse on your own machine
 

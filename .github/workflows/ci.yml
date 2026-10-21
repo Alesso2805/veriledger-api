@@ -202,6 +202,24 @@ jobs:
           set -a; . deploy/.env; set +a
           CURL_CA_BUNDLE="$PWD/caddy-root.crt" sh deploy/verify.sh https://localhost
 
+      - name: A backup brings back what it saved, on this throwaway stack (VLA-28)
+        run: |
+          set -a; . deploy/.env; set +a
+          export CURL_CA_BUNDLE="$PWD/caddy-root.crt"
+          field() { python3 -c "import json, sys; print(json.load(sys.stdin)['$1'])"; }
+          signed_in=$(curl -fsS --data-urlencode "username=$ADMIN_EMAIL" --data-urlencode "password=$ADMIN_PASSWORD" https://localhost/api/auth/login)
+          token=$(echo "$signed_in" | field access_token)
+          miner=$(python3 -c 'print("a" * 64)')
+          mined=$(curl -fsS -H "Authorization: Bearer $token" -H 'Content-Type: application/json' -d "{\"miner_address\": \"$miner\"}" https://localhost/api/blocks/mine)
+          block=$(echo "$mined" | field block_hash)
+          sh deploy/backup.sh backups/rehearsal.dump
+          # The data is lost: every table and row goes
+          wipe='DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
+          docker compose -f deploy/docker-compose.prod.yml exec -T postgres sh -c "psql -v ON_ERROR_STOP=1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c '$wipe'"
+          sh deploy/restore.sh backups/rehearsal.dump
+          sh deploy/verify.sh https://localhost
+          curl -fsS "https://localhost/api/blocks/$block" | grep -q "$block"
+
       - name: The webapp passes its own smoke test behind Caddy
         run: |
           curl -fsSL -o webapp-smoke-test.sh "https://raw.githubusercontent.com/Alesso2805/veriledger-webapp/$WEBAPP_COMMIT/docker/smoke-test.sh"

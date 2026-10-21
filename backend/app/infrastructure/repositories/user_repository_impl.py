@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, delete, func, select
+from sqlalchemy import CursorResult, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.domain.entities.user import User
@@ -39,6 +39,9 @@ class UserRepositoryImpl(UserRepository):
         self.session.add(model)
         await self.session.flush()
         return model.to_entity()
+
+    async def set_password_hash(self, user_id: str, password_hash: str) -> None:
+        await self.session.execute(update(UserModel).where(UserModel.id == user_id).values(password_hash=password_hash))
 
     async def active_demo_accounts(self, now: datetime) -> tuple[int, datetime | None]:
         stmt = select(func.count(), func.min(UserModel.expires_at)).where(UserModel.expires_at > now)
