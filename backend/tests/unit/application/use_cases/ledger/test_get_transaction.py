@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import create_autospec
+
+import pytest
 
 from backend.app.application.use_cases.ledger.get_transaction import GetTransactionByHashUseCase
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus

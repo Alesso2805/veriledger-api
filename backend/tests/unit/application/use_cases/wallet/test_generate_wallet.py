@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import create_autospec
 
 from backend.app.application.use_cases.wallet.generate_wallet import GenerateWalletUseCase

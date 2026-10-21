@@ -1,6 +1,6 @@
-from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.domain.entities.node import Node
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.infrastructure.models.node_model import NodeModel
@@ -16,7 +16,7 @@ class NodeRepositoryImpl(NodeRepository):
         await self._session.flush()
         return node
 
-    async def get_by_url(self, url: str) -> Optional[Node]:
+    async def get_by_url(self, url: str) -> Node | None:
         stmt = select(NodeModel).where(NodeModel.url == url)
         result = await self._session.execute(stmt)
         model = result.scalar_one_or_none()

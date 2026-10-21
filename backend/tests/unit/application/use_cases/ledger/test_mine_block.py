@@ -1,15 +1,15 @@
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, create_autospec, patch
+
 import pytest
-import uuid
-from unittest.mock import create_autospec, AsyncMock, patch
-from datetime import datetime, timezone
 
 from backend.app.application.use_cases.ledger.mine_block import MineBlockUseCase
+from backend.app.domain.entities.block import Block
 from backend.app.domain.entities.node import Node
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
-from backend.app.domain.entities.block import Block
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
-from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
+from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.consensus import ConsensusService
 from backend.app.domain.ports.services.hashing import HasherService
 
@@ -54,14 +54,12 @@ async def test_mine_block_success(mock_block_repo, mock_tx_repo, mock_consensus,
         amount=10.0,
         fee=2.0,
         status=TransactionStatus.PENDING,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         signature="sig",
     )
     mock_tx_repo.get_by_status.return_value = [pending_tx]
 
-    last_block = Block(
-        id="b1", block_number=5, previous_hash="prev", timestamp=datetime.now(timezone.utc), transaction_ids=[]
-    )
+    last_block = Block(id="b1", block_number=5, previous_hash="prev", timestamp=datetime.now(UTC), transaction_ids=[])
     last_block.block_hash = "last_hash"
     mock_block_repo.get_latest_block.return_value = last_block
 

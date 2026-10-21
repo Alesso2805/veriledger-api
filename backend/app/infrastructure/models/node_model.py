@@ -1,4 +1,5 @@
 import uuid
+
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import String
 

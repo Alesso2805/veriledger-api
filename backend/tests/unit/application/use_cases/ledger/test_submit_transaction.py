@@ -1,14 +1,14 @@
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, create_autospec, patch
+
 import pytest
-import uuid
-from unittest.mock import create_autospec, AsyncMock, patch
-from datetime import datetime, timezone
 
 from backend.app.application.dto.transaction import TransactionCreateRequestDTO
 from backend.app.application.use_cases.ledger.submit_transaction import SubmitTransactionUseCase
 from backend.app.domain.entities.node import Node
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
-from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
+from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.hashing import HasherService
 from backend.app.domain.ports.services.signature import SignatureService
 
@@ -96,7 +96,7 @@ async def test_submit_transaction_already_exists(mock_tx_repo, mock_hasher, mock
         amount=1.0,
         fee=1.0,
         status=TransactionStatus.PENDING,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         signature="sig",
     )
     mock_tx_repo.get_by_hash.return_value = existing_tx

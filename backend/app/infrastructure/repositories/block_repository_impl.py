@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -26,7 +24,7 @@ class BlockRepositoryImpl(BlockRepository):
         await self._session.flush()
         return block
 
-    async def get_latest_block(self) -> Optional[Block]:
+    async def get_latest_block(self) -> Block | None:
         stmt = (
             select(BlockModel)
             .order_by(desc(BlockModel.block_number))
@@ -39,7 +37,7 @@ class BlockRepositoryImpl(BlockRepository):
             return None
         return self._model_to_entity(model)
 
-    async def get_by_hash(self, block_hash: str) -> Optional[Block]:
+    async def get_by_hash(self, block_hash: str) -> Block | None:
         stmt = (
             select(BlockModel).where(BlockModel.block_hash == block_hash).options(selectinload(BlockModel.transactions))
         )
@@ -62,10 +60,12 @@ class BlockRepositoryImpl(BlockRepository):
         return [self._model_to_entity(m) for m in models]
 
     async def replace_chain(self, new_chain_data: list[dict]) -> None:
-        from sqlalchemy import delete
-        from backend.app.infrastructure.models.transaction_model import TransactionModel
-        from backend.app.domain.entities.transaction import TransactionStatus
         from datetime import datetime
+
+        from sqlalchemy import delete
+
+        from backend.app.domain.entities.transaction import TransactionStatus
+        from backend.app.infrastructure.models.transaction_model import TransactionModel
 
         # 1. Delete all blocks (this will set block_id to NULL for txs if no cascade, so we delete txs too)
         await self._session.execute(

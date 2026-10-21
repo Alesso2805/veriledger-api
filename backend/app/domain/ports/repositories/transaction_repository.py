@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
 
@@ -10,11 +9,11 @@ class TransactionRepository(ABC):
         pass
 
     @abstractmethod
-    async def get_by_id(self, transaction_id: str) -> Optional[Transaction]:
+    async def get_by_id(self, transaction_id: str) -> Transaction | None:
         pass
 
     @abstractmethod
-    async def get_by_hash(self, tx_hash: str) -> Optional[Transaction]:
+    async def get_by_hash(self, tx_hash: str) -> Transaction | None:
         pass
 
     @abstractmethod

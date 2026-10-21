@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import create_autospec
+
+import pytest
 
 from backend.app.application.use_cases.wallet.get_balance import GetBalanceUseCase
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository

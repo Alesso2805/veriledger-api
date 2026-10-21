@@ -1,10 +1,11 @@
+from unittest.mock import MagicMock, create_autospec, patch
+
 import pytest
-from unittest.mock import create_autospec, patch, MagicMock
 
 from backend.app.application.use_cases.network.resolve_conflicts import ResolveConflictsUseCase
 from backend.app.domain.entities.node import Node
-from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
+from backend.app.domain.ports.repositories.node_repository import NodeRepository
 
 
 @pytest.fixture

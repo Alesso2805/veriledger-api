@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, DateTime, Integer
+
+from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.app.domain.entities.transaction import TransactionStatus
 from backend.app.infrastructure.models.base_model import BaseModel
 
 

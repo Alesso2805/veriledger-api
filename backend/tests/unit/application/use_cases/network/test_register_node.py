@@ -1,8 +1,9 @@
-import pytest
-from unittest.mock import create_autospec, AsyncMock
+from unittest.mock import create_autospec
 
-from backend.app.application.use_cases.network.register_node import RegisterNodeUseCase
+import pytest
+
 from backend.app.application.dto.node import NodeCreateRequestDTO
+from backend.app.application.use_cases.network.register_node import RegisterNodeUseCase
 from backend.app.domain.entities.node import Node
 from backend.app.domain.ports.repositories.node_repository import NodeRepository
 
