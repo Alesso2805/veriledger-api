@@ -32,7 +32,7 @@ Option 3.
 ```
 
 - Keys sorted by code point; no whitespace; `payload` omitted when absent; strings JSON-escaped; the whole message UTF-8 encoded before signing.
-- `amount` and `fee` are strings with 8 decimals (the precision of the `numeric(18, 8)` columns), so neither side formats a float.
+- `amount` and `fee` are strings with exactly 8 decimals and no leading zeros (the precision of the `numeric(18, 8)` columns), so neither side formats a float and each amount has one spelling. The body of `POST /transactions` carries those same strings, so the API rebuilds the message from what the client signed (decided with VLA-15).
 - `nonce` is an integer, one more than the sender's last accepted nonce; `GET /wallets/{address}/nonce` returns the next one. A reused or skipped nonce answers 409 (VLA-16).
 - One function per repository builds the message: `build_signed_message` in the API, `buildSignedMessage` in the webapp's `src/lib/signing.ts`.
 - `docs/signing-vectors.json` in this repository holds the vectors (private key, fields, message, signature). The webapp copies the file in its tests; a change to the file is a change to this ADR.
@@ -40,6 +40,6 @@ Option 3.
 
 ## Consequences
 
-- Breaking change for any client: the API accepts only the new format from VLA-15, and the nonce from VLA-16. There are no deployed clients yet, so there is no migration.
+- Breaking change for any client: the API accepts only the new format from VLA-15, and the nonce from VLA-16, when the vectors move to version 2. There are no deployed clients yet, so there is no migration.
 - Amount strings make the next step to `Decimal` (VLA-31) a local change.
 - Chains synced from peers must carry the same fields, which VLA-18 validates.
