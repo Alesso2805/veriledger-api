@@ -59,3 +59,25 @@ def test_mining_reads_its_settings_from_the_environment(monkeypatch: pytest.Monk
 def test_mining_settings_out_of_range_are_refused(overrides: dict[str, Any]) -> None:
     with pytest.raises(ValidationError):
         Settings(database_url=DATABASE_URL, **overrides)
+
+
+def test_the_demo_limits_default_to_adr_0006s(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("DEMO_ACCOUNTS_PER_IP_PER_HOUR", "DEMO_MAX_ACTIVE_ACCOUNTS", "DEMO_MINES_PER_HOUR"):
+        monkeypatch.delenv(name, raising=False)
+    settings = Settings(database_url=DATABASE_URL)
+    assert (
+        settings.demo_accounts_per_ip_per_hour,
+        settings.demo_max_active_accounts,
+        settings.demo_mines_per_hour,
+    ) == (
+        5,
+        500,
+        10,
+    )
+
+
+@pytest.mark.parametrize("name", ["demo_accounts_per_ip_per_hour", "demo_max_active_accounts", "demo_mines_per_hour"])
+def test_a_negative_demo_limit_is_refused(name: str) -> None:
+    overrides: dict[str, Any] = {name: -1}
+    with pytest.raises(ValidationError):
+        Settings(database_url=DATABASE_URL, **overrides)

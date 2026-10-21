@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from backend.app.application.dto.user import LoginDTO, TokenDTO, UserResponseDTO
@@ -11,6 +11,7 @@ from backend.app.infrastructure.security.jwt_service import JWTTokenService
 from backend.app.infrastructure.security.password_hasher import PasswordHasherImpl
 from backend.app.presentation.dependencies.auth import get_current_user
 from backend.app.presentation.dependencies.database import DbSession
+from backend.app.presentation.dependencies.limits import enforce_demo_account_limits
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -36,10 +37,11 @@ async def login(db: DbSession, form_data: OAuth2PasswordRequestForm = Depends())
 
 
 @router.post("/demo", response_model=TokenDTO, status_code=status.HTTP_201_CREATED)
-async def start_demo(db: DbSession) -> TokenDTO:
+async def start_demo(request: Request, db: DbSession) -> TokenDTO:
     # Only a demo deployment makes accounts for anyone who asks (ADR-0006)
     if not settings.demo_mode:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+    await enforce_demo_account_limits(request, db)
     return await StartDemoUseCase(UserRepositoryImpl(db), JWTTokenService()).execute()
 
 
