@@ -26,6 +26,18 @@ The project strictly follows Clean Architecture and Domain-Driven Design (DDD) p
 3. **Mining (Proof of Work):** A miner hits the `/blocks/mine` endpoint. The system gathers pending transactions, verifies them again, and solves a computationally difficult cryptographic puzzle (finding a nonce). Once solved, the block is saved to the SQLite database and transactions become `CONFIRMED`.
 4. **P2P Consensus:** Nodes can register other peer URLs. When `/nodes/resolve` is called, the node fetches the blockchain from all peers. If it finds a mathematically valid chain longer than its own, it drops its local chain and synchronizes with the network, achieving decentralized consensus.
 
+## Run with Docker
+
+One command migrates the database, then starts the API with `--reload` on your code:
+
+```bash
+docker compose up
+```
+
+- The API answers on `http://127.0.0.1:8000` (`API_PORT`), and PostgreSQL 16 on `127.0.0.1:5433` (`POSTGRES_HOST_PORT`).
+- `DEMO_MODE`, `MINING_DIFFICULTY`, `PEER_TOKEN` and the demo limits come from the shell or `.env` (see `.env.example`).
+- Production runs the published image `ghcr.io/alesso2805/veriledger-api` with `deploy/docker-compose.prod.yml` and the secrets of `deploy/.env` (copy `deploy/.env.example`).
+
 ## Setup & Running Locally
 
 ### 1. Install Dependencies
