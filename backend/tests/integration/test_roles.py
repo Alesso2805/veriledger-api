@@ -35,3 +35,15 @@ async def test_each_role_mines_and_manages_peers_as_the_spec_says(
     resolved = await async_client.post("/nodes/resolve", headers=headers)
 
     assert (mined.status_code, registered.status_code, resolved.status_code) == expected
+
+
+async def test_only_an_admin_creates_users(
+    async_client: AsyncClient, postgres: async_sessionmaker[AsyncSession], admin_headers: dict[str, str]
+) -> None:
+    headers = await signed_in_as(async_client, admin_headers, "trader")
+
+    response = await async_client.post(
+        "/users", json={"email": "another@example.com", "password": "a-password", "role": "viewer"}, headers=headers
+    )
+
+    assert response.status_code == 403

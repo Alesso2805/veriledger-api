@@ -88,3 +88,11 @@ async def test_full_blocks_keep_the_notarized_payload(
     payload = NOTARIZATION["fields"]["payload"]
     assert payload in {tx["payload"] for tx in full["items"][0]["transactions"]}
     assert payload in {tx["payload"] for tx in by_hash["transactions"]}
+
+
+async def test_an_unknown_transaction_hash_answers_404(
+    async_client: AsyncClient, postgres: async_sessionmaker[AsyncSession]
+) -> None:
+    response = await async_client.get(f"/transactions/{'0' * 64}")
+
+    assert (response.status_code, response.json()["detail"]) == (404, "Transaction not found")

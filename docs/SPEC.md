@@ -114,7 +114,7 @@ PostgreSQL 16. One Alembic history in `backend/alembic/versions`. Every table in
 
 ## API contract
 
-The generated OpenAPI document is the contract; this table is its summary. `make openapi` writes it to `docs/openapi.json` (`backend/app/openapi_document.py`) with sorted keys and a fixed indent, so the same API always writes the same bytes. A unit test fails when the file is stale, so a route or a response model that changed without it fails CI; another checks that every operation answers a named schema and that the enums are named (VLA-37). The webapp generates its types from this file, pinned to a commit.
+The generated OpenAPI document is the contract; this table is its summary. The status codes each route documents here are listed in `test_documented_status_codes.py`, and the integration suite must produce every one of them (VLA-25). `make openapi` writes it to `docs/openapi.json` (`backend/app/openapi_document.py`) with sorted keys and a fixed indent, so the same API always writes the same bytes. A unit test fails when the file is stale, so a route or a response model that changed without it fails CI; another checks that every operation answers a named schema and that the enums are named (VLA-37). The webapp generates its types from this file, pinned to a commit.
 
 | Method | Path | Auth | Role (target, VLA-19) | Purpose |
 | --- | --- | --- | --- | --- |
@@ -226,7 +226,7 @@ A demo account (ADR-0006) is a `trader` for 24 hours. Without an account, a visi
 **Definition of done**
 
 - The acceptance criteria are met and demonstrable.
-- Unit tests for the use cases, and at least one integration test per new or changed endpoint, against a real Postgres.
+- Unit tests for the use cases, and at least one integration test per new or changed endpoint, against a real Postgres; every status code a route documents is produced by a test, which `backend/tests/integration/test_documented_status_codes.py` checks against its table of each route's codes (VLA-25).
 - Green checks: Ruff, Ruff format, Mypy strict, the architecture tests, Pytest.
 - `docker compose up` from a clean clone brings the API up with no manual steps.
 - The OpenAPI document and this specification are updated when a contract changes.
