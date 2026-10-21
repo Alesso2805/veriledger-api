@@ -23,3 +23,4 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
         await session.commit()
+from backend.app.application.dto.user import UserCreateDTO  # noqa: F401  CI canary: breaks AR-03 on purpose
