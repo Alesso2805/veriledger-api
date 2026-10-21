@@ -31,7 +31,6 @@ async def register_node(
 @router.get("", response_model=list[NodeResponseDTO])
 async def get_nodes(
     db: DbSession,
-    current_user: User = Depends(get_current_user),
 ) -> list[NodeResponseDTO]:
     node_repo = NodeRepositoryImpl(db)
     nodes = await node_repo.get_all()
