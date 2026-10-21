@@ -42,7 +42,7 @@ Status: **Built** (exists on `main`, see the audit for its defects), **Planned**
 | Mining | Proof of Work | All pending transactions plus a coinbase go into one block; SHA-256 with 4 leading hex zeros | Built (VLA-05) |
 | Mining | Reward and fees | Coinbase from `SYSTEM` of 50 + the block's fees to the miner | Built (VLA-06) |
 | Mining | Atomic and non-blocking | One DB transaction per block; PoW off the event loop; difficulty and reward in settings | Planned (VLA-17) |
-| Network | Peers | Register, list; new transactions and blocks are broadcast to peers | Built (VLA-07); broadcast fails between authenticated nodes until VLA-19 |
+| Network | Peers | Register, list; new transactions and blocks are broadcast to peers, which take the shared peer token in place of a user | Built (VLA-07); the peer token since VLA-19 |
 | Network | Consensus | `POST /nodes/resolve` adopts the longest valid chain among peers | Built (VLA-07) with a structural check only; full validation in VLA-18 |
 | Operations | Health | `GET /health` | Built (VLA-01); database check in VLA-26 |
 | Operations | Deployment | One server, Docker Compose, Caddy, HTTPS | Planned (VLA-22, VLA-23, VLA-27) |
@@ -66,6 +66,10 @@ The admin seed lives in `backend/app/cli/seed.py`. Like the routers, it is a com
 **Request flow (submit a transfer).** Router → `SubmitTransactionUseCase` → rebuild the signed message → `SignatureService.verify_signature` → `HasherService.hash_transaction` → duplicate check by hash → balance check → `TransactionRepository.create` (a flush) → the session dependency commits → the response → the broadcast to peers, as a background task (ADR-0007).
 
 **Peer calls.** Use cases call peers through the `PeerClient` port (`domain/ports/services/peer_client.py`), implemented with httpx in `infrastructure/peers/`. They offer new transactions (`POST /transactions`), ask peers to resolve after a new block (`POST /nodes/resolve`), and read a peer's whole chain, page by page, from `GET /blocks/full` to resolve conflicts. A peer's chain is as long as what was fetched, never the `total` it claims, and it is compared with our whole chain, not one page.
+
+**Peer token (VLA-19).** The nodes of one network share `PEER_TOKEN`. Every peer call sends it in `X-Peer-Token`, and `POST /transactions` and `POST /nodes/resolve` accept it in place of a user, compared in constant time; no other route takes it. It names a node, not a person: a transaction a peer offers is checked against its signature, balance and nonce like any other. Unset or empty, the header is ignored and those routes need a user. Every registered peer receives the token, so an admin registers only nodes of the same network.
+
+**Adopting a chain.** Each adopted transaction keeps its payload and nonce. A pending transaction that the new chain already holds, or whose nonce it used, leaves the mempool, since it can no longer be mined.
 
 **Processes.** One API process (uvicorn). A `migrate` container runs Alembic once before the API starts (VLA-23). There are no background workers; broadcasts run as FastAPI background tasks in the API process, after the response, so peers only hear of committed data (ADR-0007).
 
@@ -116,7 +120,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | POST | `/wallets/generate` | Public | — | Development only (VLA-21) |
 | GET | `/wallets/{address}/balance` | Public | — | `{address, balance}` |
 | GET | `/wallets/{address}/nonce` | Public | — | The sender's next nonce: one more than the last accepted, 1 for a new address |
-| POST | `/transactions` | JWT | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings. A byte-identical replay answers 200 with the stored transaction; another body with a used or skipped `nonce` answers 409 |
+| POST | `/transactions` | JWT or peer token | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings. A byte-identical replay answers 200 with the stored transaction; another body with a used or skipped `nonce` answers 409 |
 | GET | `/transactions/{tx_hash}` | Public | — | Lookup by hash (404 if unknown), with `block_number` and `block_hash` (null while pending) |
 | GET | `/transactions?status=PENDING` | Public | — | What waits for the next block, newest first (`skip`, `limit` up to 100); only `PENDING` for now |
 | GET | `/wallets/{address}/transactions` | Public | — | What an address sent or received, newest first (`skip`, `limit` up to 100), each with its status, `tx_hash` and block |
@@ -126,7 +130,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | POST | `/blocks/mine` | JWT | trader, admin | Mine the mempool into a block |
 | POST | `/nodes/register` | JWT | admin | Add a peer URL (201; 400 if duplicate) |
 | GET | `/nodes` | Public | — | List peers |
-| POST | `/nodes/resolve` | JWT; peer token in VLA-19 | admin | Adopt the longest valid chain among peers |
+| POST | `/nodes/resolve` | JWT or peer token | admin | Adopt the longest valid chain among peers |
 
 **Public reads (ADR-0006, VLA-36).** Blocks, transactions and peers are read without a token; every write needs one, with the role of › Permissions by role. A public page holds at most 100 items.
 
@@ -167,15 +171,16 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | Security | Production refuses a missing, default or short `SECRET_KEY`; debug off by default; CORS origins from configuration | Settings tests (VLA-21) |
 | Security | The server never generates or receives private keys in production | `/wallets/generate` answers 404 in production (VLA-21); webapp test (VLW-16) |
 | Security | Peer URLs cannot point the server at internal addresses | SSRF tests with loopback and private ranges (VLA-19) |
+| Security | Only a node holding the peer token submits or asks for a resolve without a user, and the token opens no other route | `test_peer_token.py`, AR-08, and two running nodes in `test_two_nodes.py` (VLA-19) |
 | Security | Login and transaction submission are rate limited | 429 tests (VLA-29) |
 | Reproducibility | The image installs exactly `uv.lock` and the app imports with runtime dependencies only | CI builds the image and imports the app (VLA-11, VLA-22) |
 | Deployment | `docker compose up` applies migrations before the API starts | Startup from an empty database in CI (VLA-23) |
 | Observability | JSON logs in production with a request id; `/health` reports the database | Log and health tests (VLA-26) |
 | Quality | Ruff and Mypy strict without errors; architecture tests green; coverage ≥ 80 % in `domain` and `application` | GitHub Actions (VLA-10, VLA-12, VLA-13) |
 
-**Permissions by role (VLA-19).** Each endpoint declares its required role in the router through `RequireRole`; this table is its specification.
+**Permissions by role (VLA-19).** Each endpoint declares its required role in the router through `RequireRole`, or `RequireRoleOrPeer` on the two routes a peer calls; this table is its specification.
 
-A demo account (ADR-0006) is a `trader` for 24 hours. Without an account, a visitor can read blocks, transactions and peers.
+A demo account (ADR-0006) is a `trader` for 24 hours. Without an account, a visitor can read blocks, transactions and peers. Another node of the network, with the peer token, may submit transactions and ask for a resolve (› Peer calls); it has no role and no other write.
 
 | Permission | viewer | trader | admin |
 | --- | :-: | :-: | :-: |

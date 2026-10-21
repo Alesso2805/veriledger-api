@@ -85,6 +85,20 @@ class BlockRepositoryImpl(BlockRepository):
         await self._session.execute(
             delete(TransactionModel).where(TransactionModel.status == TransactionStatus.CONFIRMED)
         )
+        # except those the new chain already holds or whose nonce it used, which can no longer be mined
+        new_transactions = [tx for block_data in new_chain_data for tx in block_data.get("transactions", [])]
+        mined_hashes = {tx.get("tx_hash") for tx in new_transactions}
+        used_nonces = {(tx.get("sender_address"), tx.get("nonce")) for tx in new_transactions if tx.get("nonce")}
+        pending = await self._session.execute(
+            select(TransactionModel).where(TransactionModel.status == TransactionStatus.PENDING)
+        )
+        superseded = [
+            model.id
+            for model in pending.scalars()
+            if model.tx_hash in mined_hashes or (model.sender_address, model.nonce) in used_nonces
+        ]
+        if superseded:
+            await self._session.execute(delete(TransactionModel).where(TransactionModel.id.in_(superseded)))
         await self._session.execute(delete(BlockModel))
 
         for block_data in new_chain_data:
@@ -109,6 +123,8 @@ class BlockRepositoryImpl(BlockRepository):
                     timestamp=datetime.fromisoformat(tx_data["timestamp"]),
                     signature=tx_data["signature"],
                     tx_hash=tx_data["tx_hash"],
+                    payload=tx_data.get("payload"),
+                    nonce=tx_data.get("nonce"),
                     block_id=block.id,
                 )
                 self._session.add(tx)
