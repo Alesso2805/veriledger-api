@@ -26,7 +26,8 @@ services:
   migrate:
     <<: *app
     restart: "no"
-    command: ["alembic", "-c", "backend/alembic.ini", "upgrade", "head"]
+    # Migrates, then creates the admin of deploy/.env once; production refuses the development password
+    command: ["sh", "-c", "alembic -c backend/alembic.ini upgrade head && python -m backend.app.cli.seed"]
     depends_on:
       postgres:
         condition: service_healthy
