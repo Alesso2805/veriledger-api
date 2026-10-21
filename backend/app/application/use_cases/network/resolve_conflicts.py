@@ -37,25 +37,19 @@ class ResolveConflictsUseCase:
                     continue
 
         if new_chain:
-            # We found a longer valid chain. Replace ours.
             await self._block_repo.replace_chain(new_chain)
             return True
 
         return False
 
     def _is_valid_chain(self, chain_data: list[dict[str, Any]]) -> bool:
-        """
-        Validate the new chain hashes and proof of work.
-        For MVP, we just do a simple structural check.
-        """
+        """Only checks that the blocks link up. SPEC › Valid chain lists the full rules, which VLA-18 implements."""
         if not chain_data:
             return False
 
         last_block = chain_data[0]
         for current_block in chain_data[1:]:
-            # Verify previous hash (Note: assuming chain is ordered oldest to newest, wait, our get_all returns newest first)
-            # Actually get_all_blocks returns offset ordered by DESC. So items[0] is the NEWEST block.
-            # So items[i] should have previous_hash == items[i+1].block_hash
+            # /blocks/full lists newest first, so each block's previous_hash must be the next item's block_hash
             if current_block.get("block_hash") != last_block.get("previous_hash"):
                 return False
             last_block = current_block

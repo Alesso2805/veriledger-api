@@ -29,8 +29,6 @@ class SubmitTransactionUseCase:
         self._peers: list[Node] = []
 
     async def execute(self, request: TransactionCreateRequestDTO) -> Transaction:
-        # Check if transaction signature and contents generate a known hash to avoid infinite loops in gossip
-        # Wait, we need to generate the hash first to check if we already have it.
         now = datetime.now(UTC)
 
         message = build_signed_message(
@@ -57,12 +55,12 @@ class SubmitTransactionUseCase:
         )
         tx_hash = self.hasher.hash_transaction(temp_tx)
 
-        # Check if already exists (avoid infinite gossip loop)
+        # Meant to stop a broadcast echoing between peers, but the hash includes a fresh id and timestamp,
+        # so a resubmission never matches; VLA-16 hashes the signed fields
         existing_tx = await self.tx_repo.get_by_hash(tx_hash)
         if existing_tx:
             return existing_tx
 
-        # Check if sender has enough balance
         balance = await self.tx_repo.get_balance(request.sender_address)
         total_required = amount + fee
         if balance < total_required:
@@ -86,13 +84,7 @@ class SubmitTransactionUseCase:
         async with httpx.AsyncClient() as client:
             tasks = []
             for node in nodes:
-                # We do not pass auth tokens for P2P sync in this MVP,
-                # but if the remote node requires it, it might fail.
-                # For a real P2P, node-to-node auth is handled differently.
-                # Assuming /transactions is open or uses node keys.
-                # Wait, our /transactions requires auth!
-                # For this MVP simulation, we might need a dedicated unauthenticated P2P endpoint,
-                # or we just try and accept that it might fail if they don't share auth.
-                # Let's hit the same endpoint, maybe it works if we disabled auth for P2P, but we didn't.
+                # Peers require a JWT this call does not send, so the broadcast fails between
+                # authenticated nodes until VLA-19 adds a peer token
                 tasks.append(client.post(f"{node.url}/transactions", json=payload))
             await asyncio.gather(*tasks, return_exceptions=True)

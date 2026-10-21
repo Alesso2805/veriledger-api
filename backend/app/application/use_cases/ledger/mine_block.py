@@ -32,15 +32,12 @@ class MineBlockUseCase:
         self._peers: list[Node] = []
 
     async def execute(self, miner_address: str) -> BlockResponseDTO:
-        # Get pending transactions
         pending_txs = await self.tx_repo.get_by_status(TransactionStatus.PENDING)
 
-        # Calculate total fees from pending txs
         total_fees = sum(tx.fee for tx in pending_txs)
 
         now = datetime.now(UTC)
 
-        # Create Coinbase transaction
         coinbase_tx = Transaction(
             id=str(uuid.uuid4()),
             sender_address="SYSTEM",
@@ -53,13 +50,11 @@ class MineBlockUseCase:
         )
         coinbase_tx.tx_hash = self.hasher.hash_transaction(coinbase_tx)
 
-        # Save coinbase tx
         await self.tx_repo.create(coinbase_tx)
 
         all_txs_for_block = [coinbase_tx] + pending_txs
         tx_ids = [tx.id for tx in all_txs_for_block]
 
-        # Get latest block to find previous hash
         latest_block = await self.block_repo.get_latest_block()
         if latest_block:
             # A stored block always has its hash; only a block being mined has none
@@ -79,20 +74,16 @@ class MineBlockUseCase:
             transaction_ids=tx_ids,
         )
 
-        # Mine the block (find nonce and hash)
-        # We use a difficulty of 4 for testing purposes
+        # Fixed difficulty until VLA-17 makes it a setting
         nonce, block_hash = self.consensus_service.mine_block(block, difficulty=4)
         block.nonce = nonce
         block.block_hash = block_hash
 
-        # Save the block
         await self.block_repo.create(block)
 
-        # Update coinbase block_id
         coinbase_tx.block_id = block.id
         await self.tx_repo.update(coinbase_tx)
 
-        # Update pending transactions to CONFIRMED and link to this block
         for tx in pending_txs:
             tx.status = TransactionStatus.CONFIRMED
             tx.block_id = block.id
