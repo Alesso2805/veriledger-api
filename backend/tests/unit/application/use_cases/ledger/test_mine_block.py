@@ -78,6 +78,7 @@ async def test_mine_block_success(
     assert len(result.transaction_ids) == 2  # 1 coinbase + 1 pending
     assert result.transaction_hashes == ["coinbase_tx_hash", "pending_tx_hash"]
     mock_tx_repo.create.assert_called_once()
+    assert mock_tx_repo.create.call_args.args[0].nonce == 6  # the coinbase's nonce is its block number
     mock_block_repo.create.assert_called_once()
 
     # The router asks peers to resolve after the response; execute only reads them while the session is open

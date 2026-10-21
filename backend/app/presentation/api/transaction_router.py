@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response, status
 
 from backend.app.application.dto.transaction import (
     PaginatedTransactionResponseDTO,
@@ -27,6 +27,7 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
 async def submit_transaction(
     request: TransactionCreateRequestDTO,
     background_tasks: BackgroundTasks,
+    response: Response,
     db: DbSession,
     current_user: User = Depends(get_current_user),
 ) -> TransactionResponseDTO:
@@ -38,14 +39,18 @@ async def submit_transaction(
     use_case = SubmitTransactionUseCase(tx_repo, hasher, signature_service, node_repo)
 
     try:
-        transaction = await use_case.execute(request)
+        transaction, created = await use_case.execute(request)
     except NonceConflictError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    # Background tasks run after the response, so peers only hear of the transaction once it is committed
-    background_tasks.add_task(use_case.broadcast_transaction, request)
+    if created:
+        # Background tasks run after the response, so peers only hear of the transaction once it is committed
+        background_tasks.add_task(use_case.broadcast_transaction, request)
+    else:
+        # A replay of a stored transaction: nothing was created, and peers already have it
+        response.status_code = status.HTTP_200_OK
 
     return TransactionResponseDTO.from_entity(transaction)
 
