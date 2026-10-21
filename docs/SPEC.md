@@ -61,7 +61,7 @@ One FastAPI process with five layers under `backend/app` (ADR-0001):
 | `infrastructure` | SQLAlchemy models and repositories, database session, Ed25519, SHA-256, JWT, bcrypt, PoW | `domain`, `core` |
 | `presentation` | FastAPI routers and dependencies (current user, roles); wires infrastructure into use cases | Every layer |
 
-The admin seed lives in `infrastructure/seed.py` and runs a use case, so today it is the one place where `infrastructure` imports `application`. VLA-13 moves it to `backend/app/cli/seed.py`, a composition script like the routers.
+The admin seed lives in `backend/app/cli/seed.py`. Like the routers, it is a composition script that wires infrastructure into a use case, so `infrastructure` never imports `application` (AR-03).
 
 **Request flow (submit a transfer).** Router → `SubmitTransactionUseCase` → rebuild the signed message → `SignatureService.verify_signature` → `HasherService.hash_transaction` → duplicate check by hash → balance check → `TransactionRepository.create` (a flush) → the session dependency commits → the response → the broadcast to peers, as a background task (ADR-0007).
 
@@ -225,7 +225,7 @@ veriledger-api/
 │   │   │   └── use_cases/        # auth, ledger, network, wallet
 │   │   ├── infrastructure/       # database, models, repositories, security, consensus, peers (VLA-19)
 │   │   ├── presentation/         # api/ routers, dependencies/
-│   │   ├── cli/seed.py           # make seed (moves from infrastructure in VLA-13)
+│   │   ├── cli/seed.py           # make seed
 │   │   └── main.py
 │   ├── alembic/                  # env.py and versions/
 │   ├── alembic.ini
