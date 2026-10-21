@@ -11,7 +11,7 @@ from backend.app.domain.entities.user import UserRole
 from backend.app.infrastructure.database import get_db_session
 from backend.app.main import app
 from backend.app.presentation import api
-from backend.app.presentation.dependencies.auth import RequireRole, get_current_user
+from backend.app.presentation.dependencies.auth import RequireRole, RequireRoleOrPeer, get_current_user, is_peer
 
 ANY_ROLE = frozenset(UserRole)
 TRADER_OR_ADMIN = frozenset({UserRole.TRADER, UserRole.ADMIN})
@@ -39,6 +39,9 @@ ACCESS: dict[str, frozenset[UserRole] | None] = {
     "GET /nodes": None,  # public read (ADR-0006)
     "POST /nodes/resolve": ADMIN,
 }
+
+# SPEC › Peer calls: the routes another node calls with PEER_TOKEN instead of a user
+PEER_ROUTES = {"POST /transactions", "POST /nodes/resolve"}
 
 # Public routes that may be other than GET: signing in, and a key pair that writes nothing
 PUBLIC_NON_GET = {"POST /auth/login", "POST /auth/demo", "POST /wallets/generate"}
@@ -69,12 +72,21 @@ def dependencies(dependant: Dependant) -> list[Dependant]:
 
 
 def is_signed_in(route: APIRoute) -> bool:
-    return any(dep.call is get_current_user for dep in dependencies(route.dependant))
+    # A peer's token is a credential too, so a route that takes it is not public
+    return any(
+        dep.call is get_current_user or isinstance(dep.call, RequireRoleOrPeer) for dep in dependencies(route.dependant)
+    )
+
+
+def accepts_peer(route: APIRoute) -> bool:
+    return any(dep.call is is_peer for dep in dependencies(route.dependant))
 
 
 def roles(route: APIRoute) -> frozenset[UserRole] | None:
     required = [
-        frozenset(dep.call.allowed_roles) for dep in dependencies(route.dependant) if isinstance(dep.call, RequireRole)
+        frozenset(dep.call.allowed_roles)
+        for dep in dependencies(route.dependant)
+        if isinstance(dep.call, RequireRole | RequireRoleOrPeer)
     ]
     if required:
         return frozenset.intersection(*required)
@@ -93,6 +105,10 @@ def test_ar08_every_route_requires_a_token_unless_it_is_public() -> None:
     public = {name for name, route in routes.items() if not is_signed_in(route)}
     assert public == {name for name, access in ACCESS.items() if access is None}
     assert {name for name in public if not name.startswith("GET ")} <= PUBLIC_NON_GET
+
+
+def test_ar08_only_the_peer_routes_take_the_peer_token() -> None:
+    assert {name for name, route in all_routes().items() if accepts_peer(route)} == PEER_ROUTES
 
 
 def test_ar09_every_route_requires_the_roles_of_the_spec() -> None:

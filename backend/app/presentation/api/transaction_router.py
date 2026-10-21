@@ -10,7 +10,7 @@ from backend.app.application.dto.transaction import (
 from backend.app.application.use_cases.ledger.get_transaction import GetTransactionByHashUseCase
 from backend.app.application.use_cases.ledger.list_pending_transactions import ListPendingTransactionsUseCase
 from backend.app.application.use_cases.ledger.submit_transaction import SubmitTransactionUseCase
-from backend.app.domain.entities.user import User
+from backend.app.domain.entities.user import User, UserRole
 from backend.app.domain.errors import NonceConflictError
 from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
@@ -18,7 +18,7 @@ from backend.app.infrastructure.repositories.node_repository_impl import NodeRep
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.security.ed25519_service import Ed25519ServiceImpl
 from backend.app.infrastructure.security.sha256_hasher import SHA256HasherImpl
-from backend.app.presentation.dependencies.auth import get_current_user
+from backend.app.presentation.dependencies.auth import RequireRoleOrPeer
 from backend.app.presentation.dependencies.database import DbSession
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
@@ -30,7 +30,8 @@ async def submit_transaction(
     background_tasks: BackgroundTasks,
     response: Response,
     db: DbSession,
-    current_user: User = Depends(get_current_user),
+    # A peer offers the transactions it received; the signature, balance and nonce are checked all the same
+    current_user: User | None = Depends(RequireRoleOrPeer(list(UserRole))),
 ) -> TransactionResponseDTO:
     tx_repo = TransactionRepositoryImpl(db)
     node_repo = NodeRepositoryImpl(db)

@@ -7,7 +7,7 @@ from backend.app.domain.entities.user import User, UserRole
 from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
-from backend.app.presentation.dependencies.auth import RequireRole
+from backend.app.presentation.dependencies.auth import RequireRole, RequireRoleOrPeer
 from backend.app.presentation.dependencies.database import DbSession
 
 router = APIRouter(prefix="/nodes", tags=["nodes"])
@@ -41,7 +41,8 @@ async def get_nodes(
 @router.post("/resolve", response_model=ResolveConflictsResponseDTO)
 async def resolve_conflicts(
     db: DbSession,
-    current_user: User = Depends(RequireRole([UserRole.ADMIN])),
+    # A peer that mined a block asks the others to resolve
+    current_user: User | None = Depends(RequireRoleOrPeer([UserRole.ADMIN])),
 ) -> ResolveConflictsResponseDTO:
     node_repo = NodeRepositoryImpl(db)
     block_repo = BlockRepositoryImpl(db)

@@ -3,6 +3,7 @@ from typing import Any
 import httpx
 import pytest
 
+from backend.app.core.config import settings
 from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
 
 
@@ -79,3 +80,34 @@ async def test_a_failing_peer_does_not_stop_the_others() -> None:
     await client.request_resolve(["http://up", "http://down"])
 
     assert posted == ["up/transactions", "up/nodes/resolve"]
+
+
+def recording(seen: list[httpx.Request]) -> httpx.MockTransport:
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json={"items": [], "total": 0})
+
+    return httpx.MockTransport(handler)
+
+
+async def every_call(client: HttpxPeerClient) -> None:
+    await client.send_transaction(["http://peer"], {"nonce": 1})
+    await client.request_resolve(["http://peer"])
+    await client.fetch_chain("http://peer")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("configured", "given", "sent"),
+    [(None, "given", "given"), ("from-settings", None, "from-settings"), (None, None, None), ("", None, None)],
+    ids=["given", "from settings", "none", "empty"],
+)
+async def test_every_call_carries_the_peer_token_when_there_is_one(
+    monkeypatch: pytest.MonkeyPatch, configured: str | None, given: str | None, sent: str | None
+) -> None:
+    monkeypatch.setattr(settings, "peer_token", configured)
+    seen: list[httpx.Request] = []
+
+    await every_call(HttpxPeerClient(transport=recording(seen), peer_token=given))
+
+    assert [request.headers.get("X-Peer-Token") for request in seen] == [sent] * 3
