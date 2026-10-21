@@ -116,7 +116,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | POST | `/wallets/generate` | Public | — | Development only (VLA-21) |
 | GET | `/wallets/{address}/balance` | Public | — | `{address, balance}` |
 | GET | `/wallets/{address}/nonce` | Public | — | The sender's next nonce. Planned (VLA-16) |
-| POST | `/transactions` | JWT | Any | Submit a signed transfer or notarization (201) |
+| POST | `/transactions` | JWT | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings |
 | GET | `/transactions/{tx_hash}` | JWT | Any | Lookup by hash (404 if unknown); `block_number` and `block_hash` in the response from VLA-20 |
 | GET | `/transactions?status=PENDING` | JWT | Any | What waits for the next block, paginated. Planned (VLA-33) |
 | GET | `/wallets/{address}/transactions` | Public | — | An address's activity, paginated. Planned (VLA-34) |
@@ -138,7 +138,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 
 **Keys.** Ed25519 raw keys in lowercase hex: 32-byte public key (the address), 32-byte private key, 64-byte signature (ADR-0003).
 
-**Signed message, as built.** `json.dumps({"amount", "fee", "receiver_address", "sender_address"[, "payload"]}, sort_keys=True)` with Python's default separators (`", "` and `": "`) and amounts as Python floats (`10.0`). The webapp signs `JSON.stringify` of the same keys, which has no spaces and writes `10` for `10.0`, so the API rejects every transaction the webapp signs (audit, 2026-10-20).
+**Signed message, as built (VLA-15).** `build_signed_message` in `backend/app/domain/signed_message.py`: UTF-8 JSON with keys sorted, no whitespace, `payload` omitted when absent, and `amount` and `fee` as strings with exactly 8 decimals and no leading zeros (`"10.00000000"`). The body of `POST /transactions` carries those same strings, and a number answers 422. `docs/signing-vectors.json` (version 1) pins the format; its signatures come from `@noble/curves`, the webapp's library.
 
 **Signed message, target (ADR-0004, VLA-15 and VLA-16).** UTF-8 JSON with keys sorted, no whitespace, amounts and fees as decimal strings with exactly 8 decimals, and a `nonce`:
 
