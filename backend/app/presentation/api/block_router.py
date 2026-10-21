@@ -10,14 +10,14 @@ from backend.app.application.dto.block import (
 from backend.app.application.dto.transaction import TransactionResponseDTO
 from backend.app.application.use_cases.ledger.mine_block import MineBlockUseCase
 from backend.app.domain.entities.block import Block
-from backend.app.domain.entities.user import User
+from backend.app.domain.entities.user import User, UserRole
 from backend.app.infrastructure.consensus.pow_service import ProofOfWorkServiceImpl
 from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.node_repository_impl import NodeRepositoryImpl
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.security.sha256_hasher import SHA256HasherImpl
-from backend.app.presentation.dependencies.auth import get_current_user
+from backend.app.presentation.dependencies.auth import RequireRole
 from backend.app.presentation.dependencies.database import DbSession
 
 router = APIRouter(prefix="/blocks", tags=["blocks"])
@@ -107,7 +107,7 @@ async def mine_block(
     request: MineBlockRequestDTO,
     background_tasks: BackgroundTasks,
     db: DbSession,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(RequireRole([UserRole.TRADER, UserRole.ADMIN])),
 ) -> BlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
     tx_repo = TransactionRepositoryImpl(db)
