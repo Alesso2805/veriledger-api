@@ -22,7 +22,7 @@ services:
       postgres:
         condition: service_healthy
     command: >
-      sh -c "uv run uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload"
+      uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 
   postgres:
     image: postgres:15-alpine
