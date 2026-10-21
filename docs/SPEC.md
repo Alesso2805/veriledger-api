@@ -173,7 +173,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | Observability | JSON logs in production with a request id; `/health` reports the database | Log and health tests (VLA-26) |
 | Quality | Ruff and Mypy strict without errors; architecture tests green; coverage ≥ 80 % in `domain` and `application` | GitHub Actions (VLA-10, VLA-12, VLA-13) |
 
-**Permissions by role (target, VLA-19).** Each endpoint declares its required role in the router through `RequireRole`; this table is its specification.
+**Permissions by role (VLA-19).** Each endpoint declares its required role in the router through `RequireRole`; this table is its specification.
 
 A demo account (ADR-0006) is a `trader` for 24 hours. Without an account, a visitor can read blocks, transactions and peers.
 
