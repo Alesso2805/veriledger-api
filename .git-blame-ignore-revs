@@ -3,3 +3,6 @@
 
 # style: format backend with ruff format (VLA-12)
 5ef2b7e67ba784105de0e5f8c74ed74059147da0
+
+# style: apply ruff check --fix (VLA-12)
+0ca43b02bfb03a5620e8ef14b8d640fd1e7a644f
