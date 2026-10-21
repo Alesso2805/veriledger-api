@@ -10,7 +10,7 @@ from backend.tests.integration.conftest import TEST_DATABASE_URL
 
 # SPEC › API contract: every status code each route documents. The integration suite must produce each of them.
 DOCUMENTED: dict[str, set[int]] = {
-    "GET /health": {200},
+    "GET /health": {200, 503},
     "POST /auth/login": {200, 401},
     "POST /auth/demo": {201, 404, 429},
     "GET /auth/me": {200, 401},
