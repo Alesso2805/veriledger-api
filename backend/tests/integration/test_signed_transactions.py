@@ -1,22 +1,12 @@
-import json
-from pathlib import Path
 from typing import Any
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from backend.tests.integration.conftest import VECTORS, fund
+
 pytestmark = pytest.mark.asyncio
-
-VECTORS: list[dict[str, Any]] = json.loads(
-    (Path(__file__).resolve().parents[3] / "docs" / "signing-vectors.json").read_text(encoding="utf-8")
-)["vectors"]
-
-
-async def fund(client: AsyncClient, headers: dict[str, str], address: str) -> None:
-    # Mining an empty mempool pays the coinbase (50) to the miner, enough for every vector
-    response = await client.post("/blocks/mine", json={"miner_address": address}, headers=headers)
-    assert response.status_code == 200
 
 
 @pytest.mark.parametrize("vector", VECTORS, ids=[vector["name"] for vector in VECTORS])

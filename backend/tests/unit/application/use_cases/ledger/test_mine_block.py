@@ -59,6 +59,7 @@ async def test_mine_block_success(
         status=TransactionStatus.PENDING,
         timestamp=datetime.now(UTC),
         signature="sig",
+        tx_hash="pending_tx_hash",
     )
     mock_tx_repo.get_by_status.return_value = [pending_tx]
 
@@ -75,6 +76,7 @@ async def test_mine_block_success(
     assert result.nonce == 123
     assert result.block_hash == "new_block_hash"
     assert len(result.transaction_ids) == 2  # 1 coinbase + 1 pending
+    assert result.transaction_hashes == ["coinbase_tx_hash", "pending_tx_hash"]
     mock_tx_repo.create.assert_called_once()
     mock_block_repo.create.assert_called_once()
 

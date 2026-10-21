@@ -30,6 +30,7 @@ ACCESS: dict[str, frozenset[UserRole] | None] = {
     "GET /transactions/{tx_hash}": ANY_ROLE,
     "GET /blocks": ANY_ROLE,
     "GET /blocks/full": ANY_ROLE,
+    "GET /blocks/{block_hash}": ANY_ROLE,
     "POST /blocks/mine": TRADER_OR_ADMIN,
     "POST /nodes/register": ADMIN,
     "GET /nodes": ANY_ROLE,

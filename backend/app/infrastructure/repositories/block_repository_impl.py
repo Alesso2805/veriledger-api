@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -48,6 +48,14 @@ class BlockRepositoryImpl(BlockRepository):
         if not model:
             return None
         return self._model_to_entity(model)
+
+    async def get_by_id(self, block_id: str) -> Block | None:
+        stmt = select(BlockModel).where(BlockModel.id == block_id).options(selectinload(BlockModel.transactions))
+        model = (await self._session.execute(stmt)).scalar_one_or_none()
+        return self._model_to_entity(model) if model else None
+
+    async def count(self) -> int:
+        return int((await self._session.execute(select(func.count()).select_from(BlockModel))).scalar_one())
 
     async def get_all_blocks(self, skip: int = 0, limit: int = 100) -> list[Block]:
         stmt = (
@@ -104,7 +112,7 @@ class BlockRepositoryImpl(BlockRepository):
         await self._session.flush()
 
     def _model_to_entity(self, model: BlockModel) -> Block:
-        tx_ids = [tx.id for tx in model.transactions] if hasattr(model, "transactions") else []
+        transactions = list(model.transactions) if hasattr(model, "transactions") else []
         return Block(
             id=model.id,
             block_number=model.block_number,
@@ -112,5 +120,6 @@ class BlockRepositoryImpl(BlockRepository):
             timestamp=model.timestamp,
             nonce=model.nonce,
             block_hash=model.block_hash,
-            transaction_ids=tx_ids,
+            transaction_ids=[tx.id for tx in transactions],
+            transaction_hashes=[tx.tx_hash for tx in transactions if tx.tx_hash is not None],
         )

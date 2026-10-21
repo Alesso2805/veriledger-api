@@ -117,12 +117,12 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | GET | `/wallets/{address}/balance` | Public | — | `{address, balance}` |
 | GET | `/wallets/{address}/nonce` | Public | — | The sender's next nonce. Planned (VLA-16) |
 | POST | `/transactions` | JWT | Any | Submit a signed transfer or notarization (201); `amount` and `fee` are the signed 8-decimal strings |
-| GET | `/transactions/{tx_hash}` | JWT | Any | Lookup by hash (404 if unknown); `block_number` and `block_hash` in the response from VLA-20 |
+| GET | `/transactions/{tx_hash}` | JWT | Any | Lookup by hash (404 if unknown), with `block_number` and `block_hash` (null while pending) |
 | GET | `/transactions?status=PENDING` | JWT | Any | What waits for the next block, paginated. Planned (VLA-33) |
 | GET | `/wallets/{address}/transactions` | Public | — | An address's activity, paginated. Planned (VLA-34) |
-| GET | `/blocks` | JWT | Any | Paginated blocks, newest first (`skip`, `limit`) |
-| GET | `/blocks/full` | JWT; peer token in VLA-19 | Any | Blocks with their transactions, for peers |
-| GET | `/blocks/{block_hash}` | JWT | Any | Planned (VLA-20) |
+| GET | `/blocks` | JWT | Any | Paginated blocks, newest first (`skip`, `limit`), each with its `transaction_hashes` |
+| GET | `/blocks/full` | JWT; peer token in VLA-19 | Any | Blocks with their transactions, payloads included, for peers |
+| GET | `/blocks/{block_hash}` | JWT | Any | One block with its transactions (404 if unknown) |
 | POST | `/blocks/mine` | JWT | trader, admin | Mine the mempool into a block |
 | POST | `/nodes/register` | JWT | admin | Add a peer URL (201; 400 if duplicate) |
 | GET | `/nodes` | JWT | Any | List peers |
@@ -132,7 +132,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 
 **Errors.** Validation and business errors answer 400 with `{"detail": "<message>"}`; missing or invalid tokens 401; a role without permission 403; unknown resources 404; conflicts (duplicate nonce, concurrent mining) 409 from VLA-16 and VLA-17.
 
-**Pagination.** `total` is the number of rows that match, not the page size (VLA-20).
+**Pagination.** `total` is the number of rows that match, not the page size.
 
 ## Signing and hashing contract
 

@@ -1,6 +1,9 @@
+import json
 import os
 import uuid
 from collections.abc import AsyncGenerator
+from pathlib import Path
+from typing import Any
 
 import pytest
 import pytest_asyncio
@@ -19,6 +22,16 @@ TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "")
 
 ADMIN_EMAIL = "admin@example.com"
 ADMIN_PASSWORD = "admin-password"
+
+VECTORS: list[dict[str, Any]] = json.loads(
+    (Path(__file__).resolve().parents[3] / "docs" / "signing-vectors.json").read_text(encoding="utf-8")
+)["vectors"]
+
+
+async def fund(client: AsyncClient, headers: dict[str, str], address: str) -> None:
+    # Mining an empty mempool pays the coinbase (50) to the miner, enough for every vector
+    response = await client.post("/blocks/mine", json={"miner_address": address}, headers=headers)
+    assert response.status_code == 200
 
 
 @pytest_asyncio.fixture
