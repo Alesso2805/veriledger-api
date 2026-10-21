@@ -8,7 +8,6 @@ from backend.app.domain.ports.services.hashing import HasherService
 
 class SHA256HasherImpl(HasherService):
     def hash_transaction(self, transaction: Transaction) -> str:
-        # Create a deterministic dictionary representing the transaction
         tx_data = {
             "id": transaction.id,
             "sender_address": transaction.sender_address,
