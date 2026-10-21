@@ -85,8 +85,13 @@ async def test_a_block_mined_on_a_stale_latest_block_answers_409_and_writes_noth
 
 
 async def test_simultaneous_mines_give_consecutive_blocks_or_409_with_one_coinbase_each(
-    async_client: AsyncClient, admin_headers: dict[str, str], postgres: async_sessionmaker[AsyncSession]
+    async_client: AsyncClient,
+    admin_headers: dict[str, str],
+    postgres: async_sessionmaker[AsyncSession],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # The database's own guard, without VLA-29's lock, which would answer 429 before any race
+    monkeypatch.setattr(settings, "mine_one_at_a_time", False)
     await fund(async_client, admin_headers, TRANSFER["fields"]["sender_address"])
     tx_hash = await submit(async_client, admin_headers, TRANSFER)
 

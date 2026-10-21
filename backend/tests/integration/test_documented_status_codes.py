@@ -11,7 +11,7 @@ from backend.tests.integration.conftest import TEST_DATABASE_URL
 # SPEC › API contract: every status code each route documents. The integration suite must produce each of them.
 DOCUMENTED: dict[str, set[int]] = {
     "GET /health": {200, 503},
-    "POST /auth/login": {200, 401},
+    "POST /auth/login": {200, 401, 429},
     "POST /auth/demo": {201, 404, 429},
     "GET /auth/me": {200, 401},
     "POST /users": {201, 400, 401, 403},
@@ -19,7 +19,7 @@ DOCUMENTED: dict[str, set[int]] = {
     "GET /wallets/{address}/balance": {200},
     "GET /wallets/{address}/nonce": {200},
     "GET /wallets/{address}/transactions": {200, 422},
-    "POST /transactions": {200, 201, 400, 401, 409, 422},
+    "POST /transactions": {200, 201, 400, 401, 409, 422, 429},
     "GET /transactions": {200, 422},
     "GET /transactions/{tx_hash}": {200, 404},
     "GET /blocks": {200, 422},

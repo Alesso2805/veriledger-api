@@ -108,3 +108,22 @@ def test_the_admin_defaults_are_for_development(monkeypatch: pytest.MonkeyPatch)
     assert (settings.admin_email, settings.admin_password) == ("admin@veriledger.com", "adminpassword123")
     monkeypatch.setenv("ADMIN_EMAIL", "operator@example.com")
     assert Settings(database_url=DATABASE_URL).admin_email == "operator@example.com"
+
+
+def test_the_abuse_limits_default_to_vla_29s(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("LOGIN_ATTEMPTS_PER_MINUTE", "TRANSACTIONS_PER_SENDER_PER_MINUTE", "MINE_ONE_AT_A_TIME"):
+        monkeypatch.delenv(name, raising=False)
+    settings = Settings(database_url=DATABASE_URL)
+    limits = (
+        settings.login_attempts_per_minute,
+        settings.transactions_per_sender_per_minute,
+        settings.mine_one_at_a_time,
+    )
+    assert limits == (5, 60, True)
+
+
+@pytest.mark.parametrize("name", ["login_attempts_per_minute", "transactions_per_sender_per_minute"])
+def test_a_negative_abuse_limit_is_refused(name: str) -> None:
+    overrides: dict[str, Any] = {name: -1}
+    with pytest.raises(ValidationError):
+        Settings(database_url=DATABASE_URL, **overrides)
