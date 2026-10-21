@@ -8,17 +8,19 @@ from backend.app.domain.ports.services.hashing import HasherService
 
 class SHA256HasherImpl(HasherService):
     def hash_transaction(self, transaction: Transaction) -> str:
-        tx_data = {
-            "id": transaction.id,
-            "sender_address": transaction.sender_address,
+        # What was signed plus the signature, and no id or arrival time: the same signed body is the same
+        # transaction, and two signatures are two transactions (ADR-0004)
+        tx_data: dict[str, str | int | None] = {
+            "amount": f"{transaction.amount:.8f}",
+            "fee": f"{transaction.fee:.8f}",
+            "nonce": transaction.nonce,
             "receiver_address": transaction.receiver_address,
-            "amount": float(transaction.amount),
-            "timestamp": transaction.timestamp.isoformat(),
+            "sender_address": transaction.sender_address,
+            "signature": transaction.signature,
         }
         if transaction.payload is not None:
             tx_data["payload"] = transaction.payload
-        # Dump to JSON with sorted keys to ensure determinism
-        tx_string = json.dumps(tx_data, sort_keys=True)
+        tx_string = json.dumps(tx_data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(tx_string.encode("utf-8")).hexdigest()
 
     def hash_block(self, block: Block) -> str:

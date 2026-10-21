@@ -64,8 +64,9 @@ async def test_submit_transaction_success(
 
     mock_node_repo.get_all.return_value = [Node(id="1", url="http://peer", status="ACTIVE")]
 
-    result = await use_case.execute(request)
+    result, created = await use_case.execute(request)
 
+    assert created is True
     assert result.sender_address == "sender"
     assert result.amount == 10.0
     assert result.tx_hash == "mocked_tx_hash"
@@ -127,8 +128,8 @@ async def test_submit_transaction_already_exists(
     )
     mock_tx_repo.get_by_hash.return_value = existing_tx
 
-    result = await use_case.execute(request)
-    assert result == existing_tx
+    result, created = await use_case.execute(request)
+    assert (result, created) == (existing_tx, False)
     mock_tx_repo.get_balance.assert_not_called()
 
 

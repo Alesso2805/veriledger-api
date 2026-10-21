@@ -3,12 +3,14 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric import ed25519
 from httpx import AsyncClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
 from backend.app.domain.errors import NonceConflictError
+from backend.app.domain.signed_message import build_signed_message
 from backend.app.infrastructure.models.transaction_model import TransactionModel
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.tests.integration.conftest import VECTORS, fund, submit
@@ -41,17 +43,53 @@ async def test_the_next_nonce_starts_at_one_and_follows_each_transaction(
     assert after == {"address": ALICE, "nonce": 2}
 
 
-async def test_a_replayed_request_body_creates_nothing(
+async def test_a_replayed_request_body_creates_nothing_and_answers_the_stored_transaction(
+    async_client: AsyncClient, postgres: async_sessionmaker[AsyncSession], admin_headers: dict[str, str]
+) -> None:
+    await fund(async_client, admin_headers, ALICE)
+    first = await async_client.post("/transactions", json=body(BY_NAME["transfer"]), headers=admin_headers)
+
+    replay = await async_client.post("/transactions", json=body(BY_NAME["transfer"]), headers=admin_headers)
+
+    assert (first.status_code, replay.status_code) == (201, 200)
+    assert replay.json()["tx_hash"] == first.json()["tx_hash"]
+    assert replay.json()["id"] == first.json()["id"]
+    assert await sent_by(postgres, ALICE) == 1
+
+
+async def test_another_body_with_a_used_nonce_is_a_conflict(
     async_client: AsyncClient, postgres: async_sessionmaker[AsyncSession], admin_headers: dict[str, str]
 ) -> None:
     await fund(async_client, admin_headers, ALICE)
     await submit(async_client, admin_headers, BY_NAME["transfer"])
+    # Alice signs a different amount with the nonce she already used (test-only key from the vectors)
+    fields = {**BY_NAME["transfer"]["fields"], "amount": "5.00000000"}
+    key = ed25519.Ed25519PrivateKey.from_private_bytes(bytes.fromhex(BY_NAME["transfer"]["private_key"]))
+    signature = key.sign(build_signed_message(**fields).encode("utf-8")).hex()
 
-    replay = await async_client.post("/transactions", json=body(BY_NAME["transfer"]), headers=admin_headers)
+    response = await async_client.post("/transactions", json={**fields, "signature": signature}, headers=admin_headers)
 
-    assert replay.status_code == 409
-    assert replay.json()["detail"] == "Nonce 1 is not the next one for this sender; the next is 2"
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Nonce 1 is not the next one for this sender; the next is 2"
     assert await sent_by(postgres, ALICE) == 1
+
+
+async def test_coinbases_to_one_miner_differ_by_their_block_number(
+    async_client: AsyncClient, postgres: async_sessionmaker[AsyncSession], admin_headers: dict[str, str]
+) -> None:
+    # Same receiver and amount twice: only the nonce (the block number) tells their hashes apart
+    blocks = [
+        (await async_client.post("/blocks/mine", json={"miner_address": "miner"}, headers=admin_headers)).json()
+        for _ in range(2)
+    ]
+
+    coinbases = [
+        (await async_client.get(f"/transactions/{block['transaction_hashes'][0]}", headers=admin_headers)).json()
+        for block in blocks
+    ]
+
+    assert coinbases[0]["tx_hash"] != coinbases[1]["tx_hash"]
+    assert [coinbase["nonce"] for coinbase in coinbases] == [block["block_number"] for block in blocks]
 
 
 async def test_a_skipped_nonce_is_a_conflict(

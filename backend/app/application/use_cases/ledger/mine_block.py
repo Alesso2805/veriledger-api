@@ -36,6 +36,17 @@ class MineBlockUseCase:
 
         total_fees = sum(tx.fee for tx in pending_txs)
 
+        latest_block = await self.block_repo.get_latest_block()
+        if latest_block:
+            # A stored block always has its hash; only a block being mined has none
+            assert latest_block.block_hash is not None
+            previous_hash = latest_block.block_hash
+            block_number = latest_block.block_number + 1
+        else:
+            # Genesis block
+            previous_hash = "0" * 64
+            block_number = 0
+
         now = datetime.now(UTC)
 
         coinbase_tx = Transaction(
@@ -47,6 +58,8 @@ class MineBlockUseCase:
             status=TransactionStatus.CONFIRMED,
             timestamp=now,
             signature="COINBASE",
+            # The block number makes each coinbase's hash unique, now that the hash covers no id or time
+            nonce=block_number,
         )
         coinbase_tx.tx_hash = self.hasher.hash_transaction(coinbase_tx)
 
@@ -54,17 +67,6 @@ class MineBlockUseCase:
 
         all_txs_for_block = [coinbase_tx] + pending_txs
         tx_ids = [tx.id for tx in all_txs_for_block]
-
-        latest_block = await self.block_repo.get_latest_block()
-        if latest_block:
-            # A stored block always has its hash; only a block being mined has none
-            assert latest_block.block_hash is not None
-            previous_hash = latest_block.block_hash
-            block_number = latest_block.block_number + 1
-        else:
-            # Genesis block
-            previous_hash = "0" * 64
-            block_number = 0
 
         block = Block(
             id=str(uuid.uuid4()),

@@ -29,7 +29,8 @@ class SubmitTransactionUseCase:
         self.node_repo = node_repo
         self._peers: list[Node] = []
 
-    async def execute(self, request: TransactionCreateRequestDTO) -> Transaction:
+    async def execute(self, request: TransactionCreateRequestDTO) -> tuple[Transaction, bool]:
+        """The transaction, and whether this request created it (False for a replay of a stored one)."""
         now = datetime.now(UTC)
 
         message = build_signed_message(
@@ -58,11 +59,11 @@ class SubmitTransactionUseCase:
         )
         tx_hash = self.hasher.hash_transaction(temp_tx)
 
-        # Meant to stop a broadcast echoing between peers, but the hash includes a fresh id and timestamp,
-        # so a resubmission never matches; VLA-16 hashes the signed fields
+        # The hash covers what was signed, so a replayed body, or a peer echoing our broadcast, finds the
+        # stored transaction before its nonce is judged as used
         existing_tx = await self.tx_repo.get_by_hash(tx_hash)
         if existing_tx:
-            return existing_tx
+            return existing_tx, False
 
         expected = next_nonce(await self.tx_repo.get_last_nonce(request.sender_address))
         if request.nonce != expected:
@@ -82,7 +83,7 @@ class SubmitTransactionUseCase:
         if self.node_repo:
             self._peers = await self.node_repo.get_all()
 
-        return created_tx
+        return created_tx, True
 
     async def broadcast_transaction(self, request: TransactionCreateRequestDTO) -> None:
         nodes = self._peers
