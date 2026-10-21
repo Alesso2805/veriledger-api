@@ -34,6 +34,14 @@ async def fund(client: AsyncClient, headers: dict[str, str], address: str) -> No
     assert response.status_code == 200
 
 
+async def submit(client: AsyncClient, headers: dict[str, str], vector: dict[str, Any]) -> str:
+    body = {**vector["fields"], "signature": vector["signature"]}
+    response = await client.post("/transactions", json=body, headers=headers)
+    assert response.status_code == 201
+    tx_hash: str = response.json()["tx_hash"]
+    return tx_hash
+
+
 @pytest_asyncio.fixture
 async def postgres(monkeypatch: pytest.MonkeyPatch) -> AsyncGenerator[async_sessionmaker[AsyncSession], None]:
     if not TEST_DATABASE_URL.startswith("postgresql"):
