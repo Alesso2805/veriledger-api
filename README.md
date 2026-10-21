@@ -38,6 +38,7 @@ docker compose up
 - `DEMO_MODE`, `MINING_DIFFICULTY`, `PEER_TOKEN` and the demo limits come from the shell or `.env` (see `.env.example`).
 - The migrate service also creates the admin of `ADMIN_EMAIL` and `ADMIN_PASSWORD`, which default to `admin@veriledger.com` / `adminpassword123` in development.
 - To run the published image instead of building it, as the webapp's end-to-end CI does: `API_IMAGE_TAG=sha-<commit> docker compose -f docker-compose.ghcr.yml up` (VLA-38).
+- Deploying on a server: [docs/runbooks/deploy.md](docs/runbooks/deploy.md), which CI rehearses on every pull request.
 - Production runs the published image `ghcr.io/alesso2805/veriledger-api` with `deploy/docker-compose.prod.yml` and the secrets of `deploy/.env` (copy `deploy/.env.example`).
 
 ## Setup & Running Locally
