@@ -1,0 +1,44 @@
+# Production (VLA-23): the published image, no bind mounts, no published database port, secrets from deploy/.env.
+# cp deploy/.env.example deploy/.env, fill it in, then: docker compose -f deploy/docker-compose.prod.yml up -d
+# Caddy in front of the API, on the same host, comes with VLA-27.
+
+x-app: &app
+  image: ghcr.io/alesso2805/veriledger-api:${API_IMAGE_TAG:-main}
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    # Built from the database's own settings, so the password is written once
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@postgres:5432/${POSTGRES_DB:?}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    <<: *app
+    restart: "no"
+    command: ["alembic", "-c", "backend/alembic.ini", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    # Only on the host's loopback: Caddy, on the same host, is the way in (VLA-27)
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:
