@@ -121,7 +121,7 @@ The 30 others say why and stay: the architecture tests (11), the integration tes
 
 ## How this inventory was made
 
-A script read every `.py` file under `backend/app` and `backend/tests` with Python's `tokenize` (so a `#` inside a string is not a comment) and `ast` (for docstrings), and skipped pragmas; it is in the PR description. Run again after the cleanup, it must list exactly the 64 entries kept or rewritten here.
+A script read every `.py` file under `backend/app` and `backend/tests` with Python's `tokenize` (so a `#` inside a string is not a comment) and `ast` (for docstrings), and skipped pragmas; it is in the PR description. Run again after the cleanup, it lists 66 comment lines: the 64 entries kept or rewritten here, two of whose rewrites (`submit_transaction.py`, decisions 1 and 2) take two lines to stay within 120 columns.
 
 ## Cleanup plan, once approved
 
