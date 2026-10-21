@@ -1,6 +1,6 @@
 # ADR-0002: PostgreSQL wherever the app runs; SQLite only for unit tests
 
-- **Status:** Proposed
+- **Status:** Accepted on 2026-10-20 (product owner)
 - **Date:** 2026-10-20
 - **Related:** SPEC.md › Data model; VLA-11, VLA-25, VLA-30; audit 2026-10-20 § 6
 
@@ -16,7 +16,7 @@ What differs between them matters to a ledger: concurrent writers (two miners), 
 2. **PostgreSQL everywhere,** including unit tests. Slower unit tests, Docker needed to run any test.
 3. **PostgreSQL wherever the app runs** (local Compose, CI integration tests, the server), **SQLite in memory only for unit tests** that never reach SQL specifics.
 
-## Decision (proposed)
+## Decision
 
 Option 3.
 
