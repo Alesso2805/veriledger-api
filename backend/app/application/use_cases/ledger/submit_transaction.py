@@ -20,7 +20,7 @@ class SubmitTransactionUseCase:
         tx_repo: TransactionRepository,
         hasher: HasherService,
         signature_service: SignatureService,
-        node_repo: NodeRepository = None,
+        node_repo: NodeRepository | None = None,
     ):
         self.tx_repo = tx_repo
         self.hasher = hasher

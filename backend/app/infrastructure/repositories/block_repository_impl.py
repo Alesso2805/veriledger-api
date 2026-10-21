@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -59,7 +61,7 @@ class BlockRepositoryImpl(BlockRepository):
         models = result.scalars().all()
         return [self._model_to_entity(m) for m in models]
 
-    async def replace_chain(self, new_chain_data: list[dict]) -> None:
+    async def replace_chain(self, new_chain_data: list[dict[str, Any]]) -> None:
         from datetime import datetime
 
         from sqlalchemy import delete
