@@ -1,0 +1,17 @@
+# The one way into a VeriLedger server (VLA-27, ADR-0005): one hostname, the API under /api and the webapp at /.
+# DOMAIN=localhost serves HTTPS with Caddy's internal CA, for a rehearsal; a real domain gets Let's Encrypt.
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	header -Server
+
+	# The prefix goes before the API sees the path; API_ROOT_PATH=/api tells it, for /api/docs
+	handle_path /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		reverse_proxy webapp:8080
+	}
+}
