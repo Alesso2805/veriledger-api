@@ -148,7 +148,7 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | --- | --- | --- | --- |
 | `DEMO_ACCOUNTS_PER_IP_PER_HOUR` | 5 | Demo accounts made from one client address in the last hour | `Too many demo accounts from your network in the last hour; try again later` |
 | `DEMO_MAX_ACTIVE_ACCOUNTS` | 500 | Demo accounts not yet expired; `Retry-After` is when the oldest expires | `The demo is full right now; try again later` |
-| `DEMO_MINES_PER_HOUR` | 10 | A demo account's mining requests in the last hour; normal accounts have no limit | `A demo account can mine N blocks per hour; try again later`, with N the setting |
+| `DEMO_MINES_PER_HOUR` | 10 | A demo account's mining requests in the last hour; normal accounts have no limit | `A demo account can mine N blocks per hour; try again later`, with N the setting (`1 block` when it is 1) |
 
 The active count is read from the database. The other two are counted by a sliding window in the API process's memory (`infrastructure/limits/`), which suffices with one API process (ADR-0005) and starts again after a restart. Behind Caddy, the client address is the visitor's only when uvicorn runs with `--proxy-headers` and trusts Caddy's address (VLA-27).
 
