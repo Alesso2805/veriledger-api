@@ -54,6 +54,8 @@ app.include_router(node_router.router)
 class HealthCheckResponse(BaseModel):
     status: str
     environment: str
+    # Lets the webapp offer "Try the demo" only where POST /auth/demo exists
+    demo_mode: bool
 
 
 @app.get("/health", response_model=HealthCheckResponse, tags=["health"])
@@ -61,4 +63,5 @@ async def health_check() -> HealthCheckResponse:
     return HealthCheckResponse(
         status="ok",
         environment=settings.app_env,
+        demo_mode=settings.demo_mode,
     )

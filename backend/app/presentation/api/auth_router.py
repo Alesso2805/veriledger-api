@@ -3,6 +3,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from backend.app.application.dto.user import LoginDTO, TokenDTO, UserResponseDTO
 from backend.app.application.use_cases.auth.login import LoginUseCase
+from backend.app.application.use_cases.auth.start_demo import StartDemoUseCase
+from backend.app.core.config import settings
 from backend.app.domain.entities.user import User
 from backend.app.infrastructure.repositories.user_repository_impl import UserRepositoryImpl
 from backend.app.infrastructure.security.jwt_service import JWTTokenService
@@ -31,6 +33,14 @@ async def login(db: DbSession, form_data: OAuth2PasswordRequestForm = Depends())
             detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
         ) from e
+
+
+@router.post("/demo", response_model=TokenDTO, status_code=status.HTTP_201_CREATED)
+async def start_demo(db: DbSession) -> TokenDTO:
+    # Only a demo deployment makes accounts for anyone who asks (ADR-0006)
+    if not settings.demo_mode:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+    return await StartDemoUseCase(UserRepositoryImpl(db), JWTTokenService()).execute()
 
 
 @router.get("/me", response_model=UserResponseDTO)

@@ -35,10 +35,4 @@ class RegisterUserUseCase:
 
         saved_user = await self.user_repo.save(user)
 
-        return UserResponseDTO(
-            id=saved_user.id,
-            email=saved_user.email,
-            role=saved_user.role,
-            created_at=saved_user.created_at,
-            updated_at=saved_user.updated_at,
-        )
+        return UserResponseDTO.model_validate(saved_user)

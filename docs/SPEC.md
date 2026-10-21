@@ -33,6 +33,7 @@ Status: **Built** (exists on `main`, see the audit for its defects), **Planned**
 | --- | --- | --- | --- |
 | Identity | Login | `POST /auth/login` with the OAuth2 password form; JWT HS256, 30 min | Built (VLA-02) |
 | Identity | Users and roles | Roles `admin`, `trader`, `viewer`; only admin creates users; bcrypt hashes; soft delete column | Built (VLA-02) |
+| Identity | Demo accounts | One click makes a 24-hour `trader` account, with no email or password (ADR-0006) | Built (VLA-35); its limits come with VLA-35's second part |
 | Identity | Admin seed | `make seed` creates the admin once | Built (VLA-02); credentials from the environment in VLA-24 |
 | Wallets | Key pair | `POST /wallets/generate` returns an Ed25519 pair in hex | Built (VLA-04); development only in VLA-21, the webapp generates keys itself (VLW-16) |
 | Wallets | Balance | `GET /wallets/{address}/balance`: confirmed received − (confirmed and pending sent + fees) | Built (VLA-04) |
@@ -84,10 +85,11 @@ PostgreSQL 16. One Alembic history in `backend/alembic/versions`. Every table in
 | Table | Column | Type | Constraints | Status |
 | --- | --- | --- | --- | --- |
 | `users` | `id` | varchar | PK | Built |
-| | `email` | varchar | NOT NULL, unique index | Built |
-| | `password_hash` | varchar | NOT NULL (bcrypt) | Built |
+| | `email` | varchar | Unique index; NULL only for a demo account (VLA-35) | Built |
+| | `password_hash` | varchar | bcrypt; NULL only for a demo account (VLA-35) | Built |
 | | `role` | enum `userrole` (`ADMIN`, `TRADER`, `VIEWER`) | NOT NULL | Built |
 | | `deleted_at` | timestamptz | NULL; queries ignore deleted users | Built |
+| | `expires_at` | timestamptz | NULL; set only on a demo account, 24 h after it was created; indexed (VLA-35) | Built |
 | `blocks` | `id` | varchar | PK | Built |
 | | `block_number` | integer | NOT NULL, unique index; 0 is genesis | Built |
 | | `previous_hash` | varchar | NOT NULL; 64 zeros for genesis | Built |
@@ -116,10 +118,10 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 
 | Method | Path | Auth | Role (target, VLA-19) | Purpose |
 | --- | --- | --- | --- | --- |
-| GET | `/health` | Public | — | Liveness; database readiness in VLA-26 |
+| GET | `/health` | Public | — | Liveness, and `demo_mode`: whether `POST /auth/demo` exists (VLA-35); database readiness in VLA-26 |
 | POST | `/auth/login` | Public | — | OAuth2 password form → `{access_token, token_type}` |
-| POST | `/auth/demo` | Public, only with `DEMO_MODE` | — | Creates a 24-hour `trader` account named `Guest XXXX` and returns its token (ADR-0006). Planned (VLA-35) |
-| GET | `/auth/me` | JWT | Any | The current user |
+| POST | `/auth/demo` | Public, only with `DEMO_MODE` | — | Creates a 24-hour `trader` account named `Guest XXXX` and returns its token, 201 (› Demo accounts); 404 without `DEMO_MODE`. Its limits (429) come with VLA-35's second part |
+| GET | `/auth/me` | JWT | Any | The current user: `email` (null for a demo account), `display_name` (the email, or `Guest XXXX`), `role`, `expires_at` (set only for a demo account) |
 | POST | `/users` | JWT | admin | Create a user |
 | POST | `/wallets/generate` | Public | — | Development only (VLA-21) |
 | GET | `/wallets/{address}/balance` | Public | — | `{address, balance}` |
@@ -137,6 +139,8 @@ The generated OpenAPI document is the contract; this table is its summary. It is
 | POST | `/nodes/resolve` | JWT or peer token | admin | Adopt the longest valid chain among peers |
 
 **Public reads (ADR-0006, VLA-36).** Blocks, transactions and peers are read without a token; every write needs one, with the role of › Permissions by role. A public page holds at most 100 items.
+
+**Demo accounts (VLA-35, ADR-0006).** With `DEMO_MODE=true`, `POST /auth/demo` creates a `trader` with no email or password, named `Guest XXXX` after the last four hex digits of its id, which expires 24 hours later. Its JWT carries `sub`, `role`, `exp` at the account's `expires_at`, and `demo: true`, so the webapp can tell an ended demo from an expired session even after a reload; a normal account's token has no `demo` claim. After `expires_at`, every request with the token answers 401 `Could not validate credentials`, like any expired token, and the account's own date is checked as well as the token's. A demo account cannot sign in with `/auth/login`. `make purge-demo-accounts` (`backend/app/cli/purge_demo_accounts.py`), run on a schedule in a demo deployment, deletes the expired accounts; blocks and transactions refer to addresses, not to users, so what a demo recorded stays on the chain. The limits on demo accounts and their mining come with VLA-35's second part.
 
 **Errors.** Validation and business errors answer 400 with `{"detail": "<message>"}`; missing or invalid tokens 401; a role without permission 403; unknown resources 404; conflicts (duplicate nonce, concurrent mining) 409 from VLA-16 and VLA-17.
 

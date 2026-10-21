@@ -1,4 +1,5 @@
 import hmac
+from datetime import UTC, datetime
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
@@ -46,6 +47,9 @@ async def user_from_token(db: AsyncSession, token: str, token_service: JWTTokenS
     user_repo = UserRepositoryImpl(db)
     user = await user_repo.get_by_id(str(user_id))
     if user is None:
+        raise credentials_exception
+    # A demo token ends with its account, but the account's own date is the rule
+    if user.is_expired(datetime.now(UTC)):
         raise credentials_exception
 
     return user

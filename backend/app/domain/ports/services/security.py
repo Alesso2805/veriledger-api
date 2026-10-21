@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Any
 
 
@@ -14,8 +15,10 @@ class PasswordHasher(ABC):
 
 class TokenService(ABC):
     @abstractmethod
-    def create_access_token(self, subject: str, role: str) -> str:
-        pass
+    def create_access_token(
+        self, subject: str, role: str, *, expires_at: datetime | None = None, demo: bool = False
+    ) -> str:
+        """A token for the subject; a demo token ends with its account and carries the claim demo: true."""
 
     @abstractmethod
     def verify_token(self, token: str) -> dict[str, Any]:
