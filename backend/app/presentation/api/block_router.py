@@ -11,6 +11,7 @@ from backend.app.application.dto.transaction import TransactionResponseDTO
 from backend.app.application.use_cases.ledger.mine_block import MineBlockUseCase
 from backend.app.domain.entities.block import Block
 from backend.app.domain.entities.user import User, UserRole
+from backend.app.domain.errors import BlockHeightTakenError
 from backend.app.infrastructure.consensus.pow_service import ProofOfWorkServiceImpl
 from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
@@ -119,6 +120,8 @@ async def mine_block(
 
     try:
         block = await use_case.execute(miner_address=request.miner_address)
+    except BlockHeightTakenError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 

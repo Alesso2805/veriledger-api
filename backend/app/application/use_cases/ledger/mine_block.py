@@ -32,11 +32,13 @@ class MineBlockUseCase:
         self._peers: list[Node] = []
 
     async def execute(self, miner_address: str) -> BlockResponseDTO:
+        # The latest block before the mempool: a block committed in between then makes this one take its
+        # height and fail with 409, instead of mining that block's transactions a second time
+        latest_block = await self.block_repo.get_latest_block()
         pending_txs = await self.tx_repo.get_by_status(TransactionStatus.PENDING)
 
         total_fees = sum(tx.fee for tx in pending_txs)
 
-        latest_block = await self.block_repo.get_latest_block()
         if latest_block:
             # A stored block always has its hash; only a block being mined has none
             assert latest_block.block_hash is not None
@@ -63,8 +65,6 @@ class MineBlockUseCase:
         )
         coinbase_tx.tx_hash = self.hasher.hash_transaction(coinbase_tx)
 
-        await self.tx_repo.create(coinbase_tx)
-
         all_txs_for_block = [coinbase_tx] + pending_txs
         tx_ids = [tx.id for tx in all_txs_for_block]
 
@@ -81,10 +81,12 @@ class MineBlockUseCase:
         block.nonce = nonce
         block.block_hash = block_hash
 
+        # Nothing is written until the nonce is found, and the block goes first: its unique height is where
+        # a block mined at the same time stops this one, before the coinbase or any confirmation
         await self.block_repo.create(block)
 
         coinbase_tx.block_id = block.id
-        await self.tx_repo.update(coinbase_tx)
+        await self.tx_repo.create(coinbase_tx)
 
         for tx in pending_txs:
             tx.status = TransactionStatus.CONFIRMED

@@ -7,7 +7,7 @@ from backend.app.domain.entities.block import Block
 class BlockRepository(ABC):
     @abstractmethod
     async def create(self, block: Block) -> Block:
-        pass
+        """Raises BlockHeightTakenError if a block already holds its block_number."""
 
     @abstractmethod
     async def get_latest_block(self) -> Block | None:

@@ -1,10 +1,12 @@
 from typing import Any
 
 from sqlalchemy import desc, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from backend.app.domain.entities.block import Block
+from backend.app.domain.errors import BlockHeightTakenError
 from backend.app.domain.ports.repositories.block_repository import BlockRepository
 from backend.app.infrastructure.models.block_model import BlockModel
 
@@ -23,7 +25,15 @@ class BlockRepositoryImpl(BlockRepository):
             block_hash=block.block_hash,
         )
         self._session.add(model)
-        await self._session.flush()
+        try:
+            await self._session.flush()
+        except IntegrityError as error:
+            # Two requests mined on the same latest block at once; the unique height keeps the first
+            if "block_number" in str(error.orig):
+                raise BlockHeightTakenError(
+                    f"Block {block.block_number} was just mined by another request; mine again"
+                ) from error
+            raise
         return block
 
     async def get_latest_block(self) -> Block | None:
