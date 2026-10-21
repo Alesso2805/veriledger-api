@@ -3,7 +3,7 @@
 VeriLedger API is a backend portfolio project inspired by verifiable finance and blockchain infrastructure. It implements a complete decentralized ledger including cryptographic transaction hashing, digital signatures (Ed25519), a Mempool, Proof of Work (mining), a P2P network consensus mechanism, and Data Notarization (Proof of Existence).
 
 ## Stack
-- Python 3.14+
+- Python 3.12
 - FastAPI
 - SQLAlchemy 2.x (async)
 - SQLite (aiosqlite)
