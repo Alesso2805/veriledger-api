@@ -60,6 +60,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_transactions_sender_address'), table_name='transactions')
     op.drop_index(op.f('ix_transactions_receiver_address'), table_name='transactions')
     op.drop_table('transactions')
+    op.execute("DROP TYPE transactionstatus")
     op.drop_index(op.f('ix_blocks_block_number'), table_name='blocks')
     op.drop_index(op.f('ix_blocks_block_hash'), table_name='blocks')
     op.drop_table('blocks')
