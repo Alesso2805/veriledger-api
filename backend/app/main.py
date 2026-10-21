@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 import structlog
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from backend.app.core.config import settings
@@ -26,8 +27,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
     logger.info("Shutting down VeriLedger API")
 
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="VeriLedger API",

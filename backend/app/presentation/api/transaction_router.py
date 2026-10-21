@@ -31,7 +31,7 @@ async def submit_transaction(
     try:
         transaction = await use_case.execute(request)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     # Background tasks run after the response, so peers only hear of the transaction once it is committed
     background_tasks.add_task(use_case.broadcast_transaction, request)
