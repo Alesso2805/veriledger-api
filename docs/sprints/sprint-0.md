@@ -31,7 +31,7 @@ The suite on 2026-10-20: 18 tests (17 unit, 1 integration), all passing with SQL
 - **Accepted: ADR-0006, demo access.**
   - Reads become public (VLA-36), and "Try the demo" creates a 24-hour trader account with no email (VLA-35).
   - The account expires, but its transactions stay on the chain.
-  - Together with the webapp's design E (VLA-33, VLA-34), this moves the deployment to Sprint 5.
+  - With the webapp's design E brought forward, the data endpoints (VLA-20, VLA-33, VLA-34, VLA-36) move to Sprint 2 and VLA-18 to Sprint 3. Deployment stays in Sprint 4.
 
 ## Changes to the specification in this sprint
 

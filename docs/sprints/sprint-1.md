@@ -1,6 +1,6 @@
 # Sprint 1 — Green from a clean clone, CI that blocks regressions, and transactions from the webapp accepted (VLA-10 to VLA-15, VLA-32)
 
-**Status as of 2026-10-20:** planned for October 26 – November 8, 2026. 19 points. Webapp counterpart: VLW-10 to VLW-15.
+**Status as of 2026-10-20:** planned for October 26 – November 8, 2026. 19 points. Webapp counterpart: VLW-10 to VLW-14, VLW-27 and VLW-33.
 
 **Order:** VLA-11, VLA-32, VLA-12, VLA-10, VLA-13, VLA-15, VLA-14.
 
