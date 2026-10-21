@@ -44,7 +44,11 @@ async def test_submit_transaction_success(
 ) -> None:
     use_case = SubmitTransactionUseCase(mock_tx_repo, mock_hasher, mock_signature_service, mock_node_repo)
     request = TransactionCreateRequestDTO(
-        sender_address="sender", receiver_address="receiver", amount=10.0, fee=1.0, signature="valid_sig"
+        sender_address="sender",
+        receiver_address="receiver",
+        amount="10.00000000",
+        fee="1.00000000",
+        signature="valid_sig",
     )
 
     mock_tx_repo.get_by_hash.return_value = None
@@ -77,7 +81,11 @@ async def test_submit_transaction_insufficient_funds(
 ) -> None:
     use_case = SubmitTransactionUseCase(mock_tx_repo, mock_hasher, mock_signature_service)
     request = TransactionCreateRequestDTO(
-        sender_address="sender", receiver_address="receiver", amount=100.0, fee=1.0, signature="valid_sig"
+        sender_address="sender",
+        receiver_address="receiver",
+        amount="100.00000000",
+        fee="1.00000000",
+        signature="valid_sig",
     )
 
     mock_tx_repo.get_by_hash.return_value = None
@@ -93,7 +101,11 @@ async def test_submit_transaction_already_exists(
 ) -> None:
     use_case = SubmitTransactionUseCase(mock_tx_repo, mock_hasher, mock_signature_service)
     request = TransactionCreateRequestDTO(
-        sender_address="sender", receiver_address="receiver", amount=10.0, fee=1.0, signature="valid_sig"
+        sender_address="sender",
+        receiver_address="receiver",
+        amount="10.00000000",
+        fee="1.00000000",
+        signature="valid_sig",
     )
 
     existing_tx = Transaction(

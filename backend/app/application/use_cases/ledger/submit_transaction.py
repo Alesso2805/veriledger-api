@@ -1,5 +1,4 @@
 import asyncio
-import json
 import uuid
 from datetime import UTC, datetime
 
@@ -12,6 +11,7 @@ from backend.app.domain.ports.repositories.node_repository import NodeRepository
 from backend.app.domain.ports.repositories.transaction_repository import TransactionRepository
 from backend.app.domain.ports.services.hashing import HasherService
 from backend.app.domain.ports.services.signature import SignatureService
+from backend.app.domain.signed_message import build_signed_message
 
 
 class SubmitTransactionUseCase:
@@ -33,27 +33,23 @@ class SubmitTransactionUseCase:
         # Wait, we need to generate the hash first to check if we already have it.
         now = datetime.now(UTC)
 
-        # We can reconstruct payload to verify signature
-        payload = {
-            "amount": float(request.amount),
-            "fee": float(request.fee),
-            "receiver_address": request.receiver_address,
-            "sender_address": request.sender_address,
-        }
-        if request.payload is not None:
-            payload["payload"] = request.payload
-        payload_str = json.dumps(payload, sort_keys=True)
-
-        is_valid = self.signature_service.verify_signature(request.sender_address, payload_str, request.signature)
-        if not is_valid:
+        message = build_signed_message(
+            sender_address=request.sender_address,
+            receiver_address=request.receiver_address,
+            amount=request.amount,
+            fee=request.fee,
+            payload=request.payload,
+        )
+        if not self.signature_service.verify_signature(request.sender_address, message, request.signature):
             raise ValueError("Invalid transaction signature")
+        amount, fee = float(request.amount), float(request.fee)
 
         temp_tx = Transaction(
             id=str(uuid.uuid4()),
             sender_address=request.sender_address,
             receiver_address=request.receiver_address,
-            amount=request.amount,
-            fee=request.fee,
+            amount=amount,
+            fee=fee,
             status=TransactionStatus.PENDING,
             timestamp=now,
             signature=request.signature,
@@ -68,7 +64,7 @@ class SubmitTransactionUseCase:
 
         # Check if sender has enough balance
         balance = await self.tx_repo.get_balance(request.sender_address)
-        total_required = request.amount + request.fee
+        total_required = amount + fee
         if balance < total_required:
             raise ValueError(f"Insufficient funds. Balance: {balance}, Required: {total_required}")
 

@@ -1,0 +1,62 @@
+{
+  "description": "Golden vectors for the signed message of a transaction (ADR-0004). The API and the webapp test every vector; a change to this file is a change to ADR-0004.",
+  "version": 1,
+  "format": "UTF-8 JSON, keys sorted by code point, no whitespace; amount and fee as strings with exactly 8 decimals and no leading zeros; payload omitted when absent. Version 2 adds the nonce (VLA-16).",
+  "keys": "RFC 8032 section 7.1, test vectors 1 to 3: published, test-only keys. Never use them for real funds.",
+  "signed_with": "@noble/curves 2.2.0 (ed25519.sign); Python's cryptography produces the same signatures",
+  "vectors": [
+    {
+      "name": "transfer",
+      "private_key": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "fields": {
+        "sender_address": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "receiver_address": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+        "amount": "10.00000000",
+        "fee": "0.00000000"
+      },
+      "message": "{\"amount\":\"10.00000000\",\"fee\":\"0.00000000\",\"receiver_address\":\"3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c\",\"sender_address\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\"}",
+      "signature": "1854e714860fd6e98fe0f931321c9141819355e743a2f78627fbeaa57803ad85c2466452dce1eec7fe717798deaf1397258911bd53015eed8954fd5526b66501"
+    },
+    {
+      "name": "transfer_with_fee",
+      "private_key": "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb",
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "fields": {
+        "sender_address": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+        "receiver_address": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "amount": "2.50000000",
+        "fee": "0.10000000"
+      },
+      "message": "{\"amount\":\"2.50000000\",\"fee\":\"0.10000000\",\"receiver_address\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"sender_address\":\"3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c\"}",
+      "signature": "a0163d6d2c7db2f16ccd818da7cf36e7e1629a4fb2622684545baa757188baec5a63a3ed822683e3e26ad7b33b025a642eb7d04b2832512e8dd18a118ebc570d"
+    },
+    {
+      "name": "smallest_amount",
+      "private_key": "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60",
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "fields": {
+        "sender_address": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+        "receiver_address": "fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025",
+        "amount": "0.00000001",
+        "fee": "0.00000000"
+      },
+      "message": "{\"amount\":\"0.00000001\",\"fee\":\"0.00000000\",\"receiver_address\":\"fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025\",\"sender_address\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\"}",
+      "signature": "4cc280e2f4dcf34215e0a8c269ff2c969c7d3fe60230b318239d96a7e35932e70caff3ad25578416166fa7cfd2a85967fb9ef7fce5bd868a42866a6925569e00"
+    },
+    {
+      "name": "notarization",
+      "private_key": "c5aa8df43f9f837bedb7442f31dcb7b166d38535076f094b85ce3a2e0b4458f7",
+      "public_key": "fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025",
+      "fields": {
+        "sender_address": "fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025",
+        "receiver_address": "fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025",
+        "amount": "0.00000000",
+        "fee": "0.00000000",
+        "payload": "3a1af43bd51f40af45e1533270cc7543cc7e87cee08ee8d04fed23c4af7b0050"
+      },
+      "message": "{\"amount\":\"0.00000000\",\"fee\":\"0.00000000\",\"payload\":\"3a1af43bd51f40af45e1533270cc7543cc7e87cee08ee8d04fed23c4af7b0050\",\"receiver_address\":\"fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025\",\"sender_address\":\"fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025\"}",
+      "signature": "3b917bf4a076016b94c32e72804c348e0f528a963d4e04b8c752b8fe44355b2ea9434c661ec2ff4dc471aa538647237e6680659b9a7dfa1723cbd00a66bb5903"
+    }
+  ]
+}
