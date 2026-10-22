@@ -18,8 +18,8 @@ router = APIRouter(prefix="/wallets", tags=["wallets"])
 @router.post("/generate", response_model=WalletKeyPairDTO)
 async def generate_wallet() -> WalletKeyPairDTO:
     """
-    Development helper. The private key travels over the network, so production answers 404 (VLA-21)
-    and the webapp generates keys in the browser (VLW-16).
+    Development helper. The private key travels over the network, so the API answers 404 outside development
+    and the webapp generates keys in the browser.
     """
     if settings.app_env != "development":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")

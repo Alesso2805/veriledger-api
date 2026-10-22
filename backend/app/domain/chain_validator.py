@@ -19,7 +19,7 @@ def spelled(value: Any) -> str:
 
 
 def amount(value: Any) -> Decimal:
-    # The 8 decimals of numeric(18, 8), exactly: summing floats would drift
+    # Sums in Decimal do not drift, but the value passes through float: exact only to about 15 digits (VLA-31)
     return Decimal(spelled(value))
 
 

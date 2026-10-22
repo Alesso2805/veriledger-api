@@ -45,7 +45,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # Runs the migrations once and exits; the API starts only if it succeeds
   migrate:
     <<: *app
     # Migrates, then creates the admin once (VLA-24); the API starts only if both succeed

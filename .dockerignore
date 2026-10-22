@@ -1,4 +1,4 @@
-# Only what the image runs: pyproject.toml, uv.lock, .python-version and backend/ without its tests
+# Keeps the build context small and free of secrets; the Dockerfile copies only what the image runs
 .env
 .git
 .github

@@ -1399,7 +1399,7 @@
     },
     "/wallets/generate": {
       "post": {
-        "description": "Development helper. The private key travels over the network, so production answers 404 (VLA-21)\nand the webapp generates keys in the browser (VLW-16).",
+        "description": "Development helper. The private key travels over the network, so the API answers 404 outside development\nand the webapp generates keys in the browser.",
         "operationId": "generate_wallet_wallets_generate_post",
         "responses": {
           "200": {

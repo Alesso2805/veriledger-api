@@ -29,7 +29,8 @@ def too_many_requests(detail: str, retry_after: float) -> HTTPException:
 
 
 def client_address(request: Request) -> str:
-    # Behind Caddy this is the visitor's address only with uvicorn's --proxy-headers (SPEC › Demo limits)
+    # Behind Caddy this is the visitor's address only because the API trusts Caddy's X-Forwarded-For
+    # (FORWARDED_ALLOW_IPS, SPEC › Demo limits)
     return request.client.host if request.client else "unknown"
 
 

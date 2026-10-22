@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     mining_difficulty: int = Field(default=4, ge=1, le=64)
     mining_reward: float = Field(default=50.0, ge=0)
 
-    # Shared by the nodes of one network (VLA-19); unset or empty, no call is taken for a peer's
+    # Shared by the nodes of one network; unset or empty, no call is accepted as a peer's
     peer_token: str | None = None
     # Lets peers sit on loopback, private and link-local addresses: development and private networks only
     allow_private_peers: bool = False
