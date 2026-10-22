@@ -1,22 +1,57 @@
 # VeriLedger API
 
-A small, readable verifiable ledger, and the engine behind the VeriLedger webapp ([veriledger-webapp](https://github.com/Alesso2805/veriledger-webapp)):
+**A small, readable verifiable ledger, and the engine behind [VeriLedger](https://github.com/Alesso2805/veriledger-webapp).**
+
+It keeps a chain of Proof-of-Work blocks with two kinds of transactions:
 
 - transfers between Ed25519 addresses, signed in the browser over one canonical message;
-- document notarization (proof of existence), by anchoring a document's hash;
-- Proof-of-Work blocks that pay their miner;
-- peer nodes that converge on the longest valid chain.
+- document notarizations (proof of existence), which anchor a document's hash.
 
-It is a portfolio project, so the guarantees it claims are backed by tests: signatures verified, no replays, atomic mining, forged chains rejected. [docs/SPEC.md](docs/SPEC.md) says what it does and how it is checked.
+Peer nodes converge on the longest valid chain. The private keys never reach the server: the webapp signs in the browser, and the API checks every signature.
 
-## What it offers
+## Try it
+
+**Live demo: [veriledger.duckdns.org](https://veriledger.duckdns.org)**
+
+The webapp and this API share one hostname. The API answers under `/api`:
+
+- [`/api/docs`](https://veriledger.duckdns.org/api/docs): the interactive documentation of every endpoint;
+- [`/api/health`](https://veriledger.duckdns.org/api/health): whether the API and its database answer.
+
+Blocks, transactions and peers are public reads. **Try the demo**, in the webapp, starts a 24-hour account with one click, which can sign, send and mine.
+
+## Highlights
 
 - **Signed transactions** over a canonical message shared with the webapp, with golden vectors ([docs/signing-vectors.json](docs/signing-vectors.json)). A nonce per sender prevents replays (ADR-0004).
 - **Mining** that is atomic, answers 409 when two requests mine the same height, and runs its Proof of Work off the event loop (ADR-0007, ADR-0008).
 - **Peers** that call each other with a shared token, only at public addresses, and adopt a chain only once every block and transaction in it is valid.
 - **Public reads** of blocks, transactions and peers, and **one-click demo accounts** that last 24 hours (ADR-0006).
-- **Production settings:** it refuses unsafe secrets, limits sign-ins, transactions and mining, and reports its database in `/health`, with a request id on every log line.
+- **Production settings:**
+  - it refuses unsafe secrets;
+  - it limits sign-ins, transactions and mining;
+  - it reports its database in `/health`;
+  - every log line has a request id.
 - **The OpenAPI document** in [docs/openapi.json](docs/openapi.json), from which the webapp generates its types.
+
+## Quality
+
+- **Audited against its own documents.** On 2026-10-20 an audit compared the first version with its specification. It found 9 blocking problems, including these:
+  - transactions signed in the webapp were rejected, and the same signed body was accepted five times;
+  - JWTs could be forged with a default key;
+  - any user could rewrite the chain through a peer;
+  - a peer's URL could reach the server's own network;
+  - concurrent mining created money.
+
+  Every blocking and important finding became a story, and all of them are done.
+- **Architecture rules that fail the build.** The 16 rules of [docs/ARCHITECTURE_RULES.md](docs/ARCHITECTURE_RULES.md) each name the test that checks them:
+  - import-linter keeps the domain free of FastAPI and SQLAlchemy;
+  - the models and the migrations agree, and the migration history goes down and up cleanly;
+  - production refuses unsafe secrets.
+- **Tests:** 199 test functions, unit and architecture tests, and integration tests against a real PostgreSQL. Mypy runs in strict mode.
+- **CI on every pull request:**
+  - lint, format, types and the layer contracts;
+  - the tests on PostgreSQL;
+  - the image, Compose, and a rehearsal of the deployment behind Caddy over HTTPS.
 
 ## Stack
 
@@ -108,3 +143,9 @@ The image is published to `ghcr.io/alesso2805/veriledger-api` on every push to `
 - [docs/BACKLOG.md](docs/BACKLOG.md): the stories and the sprint plan; [docs/sprints/](docs/sprints/): what each sprint delivered.
 - [docs/adr/](docs/adr/): one decision per file.
 - [CHANGELOG.md](CHANGELOG.md): what changed in each release.
+
+## About
+
+Built by [Alessandro David](https://github.com/Alesso2805) as a portfolio project: specification, API, web app and deployment, in two-week sprints. The API's stories are `VLA-NN` and the webapp's are `VLW-NN`.
+
+Found a security issue? See [SECURITY.md](SECURITY.md). Licensed under the [MIT License](LICENSE).
