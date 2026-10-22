@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
+from typing import NamedTuple
 
 from backend.app.domain.entities.block import Block
 
 
+class MinedBlock(NamedTuple):
+    nonce: int
+    block_hash: str
+
+
 class ConsensusService(ABC):
     @abstractmethod
-    async def mine_block(self, block: Block, difficulty: int) -> tuple[int, str]:
-        """
-        Mines a block using Proof of Work, without blocking the event loop.
-        Returns:
-            tuple[int, str]: A tuple containing the winning (nonce, block_hash)
-        """
-        pass
+    async def mine_block(self, block: Block, difficulty: int) -> MinedBlock:
+        """Proof of Work, without blocking the event loop."""

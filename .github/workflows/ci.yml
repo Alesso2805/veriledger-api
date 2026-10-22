@@ -6,7 +6,6 @@ on:
   push:
     branches: [main]
 
-# A newer push to the same branch or PR cancels the run it makes obsolete
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -76,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
-      # /health is a readiness check since VLA-26, so the healthcheck needs a database that answers
+      # /health is a readiness check, so the healthcheck needs a database that answers
       postgres:
         image: postgres:16-alpine
         env:
@@ -139,7 +138,7 @@ jobs:
           # The API started because migrate succeeded, so the tables are there
           test "$(docker compose ps -a migrate --format '{{.ExitCode}}')" = 0
           curl -fsS http://127.0.0.1:8000/blocks
-          # migrate also seeded the development admin (VLA-24)
+          # migrate also seeded the development admin
           curl -fsS -d 'username=admin@veriledger.com&password=adminpassword123' http://127.0.0.1:8000/auth/login
 
       - name: docker-compose.ghcr.yml runs the image this job built, without building (VLA-38)
@@ -213,7 +212,6 @@ jobs:
           mined=$(curl -fsS -H "Authorization: Bearer $token" -H 'Content-Type: application/json' -d "{\"miner_address\": \"$miner\"}" https://localhost/api/blocks/mine)
           block=$(echo "$mined" | field block_hash)
           sh deploy/backup.sh backups/rehearsal.dump
-          # The data is lost: every table and row goes
           wipe='DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
           docker compose -f deploy/docker-compose.prod.yml exec -T postgres sh -c "psql -v ON_ERROR_STOP=1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c '$wipe'"
           sh deploy/restore.sh backups/rehearsal.dump

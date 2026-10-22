@@ -1,4 +1,4 @@
-# The published API, for the webapp's end-to-end CI (VLA-38): the services, ports and variables of docker-compose.yml,
+# The published API, for the webapp's end-to-end CI: the services, ports and variables of docker-compose.yml,
 # but the image comes from GHCR, with no build, no bind mount and no --reload.
 #   API_IMAGE_TAG=sha-<commit> docker compose -f docker-compose.ghcr.yml up -d backend
 # API_IMAGE points it at another image, such as the one API CI has just built.
@@ -22,7 +22,7 @@ x-app: &app
     DEMO_ACCOUNTS_PER_IP_PER_HOUR: ${DEMO_ACCOUNTS_PER_IP_PER_HOUR:-5}
     DEMO_MAX_ACTIVE_ACCOUNTS: ${DEMO_MAX_ACTIVE_ACCOUNTS:-500}
     DEMO_MINES_PER_HOUR: ${DEMO_MINES_PER_HOUR:-10}
-    # VLA-29's abuse limits; 0 or false turns one off
+    # The abuse limits; 0 or false turns one off
     LOGIN_ATTEMPTS_PER_MINUTE: ${LOGIN_ATTEMPTS_PER_MINUTE:-5}
     TRANSACTIONS_PER_SENDER_PER_MINUTE: ${TRANSACTIONS_PER_SENDER_PER_MINUTE:-60}
     MINE_ONE_AT_A_TIME: ${MINE_ONE_AT_A_TIME:-true}
@@ -45,7 +45,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # Migrates, then creates the admin once (VLA-24); the API starts only if both succeed
+  # Migrates, then creates the admin once; the API starts only if both succeed
   migrate:
     <<: *app
     command: ["sh", "-c", "alembic -c backend/alembic.ini upgrade head && python -m backend.app.cli.seed"]

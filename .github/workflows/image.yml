@@ -1,6 +1,6 @@
 name: Image
 
-# Publishes the API's image for amd64 and arm64, so the webapp's CI pulls it instead of building the API (VLA-22)
+# Publishes the API's image for amd64 and arm64, so the webapp's CI pulls it instead of building the API
 on:
   push:
     branches: [main]

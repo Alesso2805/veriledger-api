@@ -1,4 +1,4 @@
-# Production (VLA-23, VLA-27): Caddy on ports 80 and 443 in front of the webapp and the API, on one hostname
+# Production: Caddy on ports 80 and 443 in front of the webapp and the API, on one hostname
 # (ADR-0005). The published images, no bind mounts, no published database or API port, secrets from deploy/.env.
 # cp deploy/.env.example deploy/.env, fill it in, then: docker compose -f deploy/docker-compose.prod.yml up -d
 

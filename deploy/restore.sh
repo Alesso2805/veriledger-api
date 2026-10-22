@@ -1,5 +1,5 @@
 #!/bin/sh
-# Restores a dump of deploy/backup.sh into the database of deploy/docker-compose.prod.yml (VLA-28), from the
+# Restores a dump of deploy/backup.sh into the database of deploy/docker-compose.prod.yml, from the
 # repository root. It replaces what the database holds, so the API is stopped first and started again after.
 # Usage: deploy/restore.sh <file>
 set -eu

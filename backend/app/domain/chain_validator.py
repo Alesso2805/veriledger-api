@@ -19,12 +19,12 @@ def spelled(value: Any) -> str:
 
 
 def amount(value: Any) -> Decimal:
-    # The 8 decimals of numeric(18, 8), exactly: summing floats would drift
+    # Sums in Decimal do not drift, but the value passes through float: exact only to about 15 digits (VLA-31)
     return Decimal(spelled(value))
 
 
 class ChainValidator:
-    """SPEC › Valid chain: whether a peer's chain, as /blocks/full serves it, may replace ours (VLA-18)."""
+    """SPEC › Valid chain: whether a peer's chain, as /blocks/full serves it, may replace ours."""
 
     def __init__(self, hasher: HasherService, signature_service: SignatureService, difficulty: int, reward: float):
         self._hasher = hasher

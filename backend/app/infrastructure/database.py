@@ -29,7 +29,7 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def database_answers(timeout: float = 2.0) -> bool:
-    """Whether the database runs a query within the timeout, for /health (VLA-26)."""
+    """Whether the database runs a query within the timeout, for /health."""
 
     async def ping() -> None:
         async with async_session_maker() as session:

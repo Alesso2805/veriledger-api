@@ -1,4 +1,4 @@
-# The one way into a VeriLedger server (VLA-27, ADR-0005): one hostname, the API under /api and the webapp at /.
+# The one way into a VeriLedger server (ADR-0005): one hostname, the API under /api and the webapp at /.
 # DOMAIN=localhost serves HTTPS with Caddy's internal CA, for a rehearsal; a real domain gets Let's Encrypt.
 
 {$DOMAIN} {

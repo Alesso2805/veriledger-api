@@ -14,7 +14,7 @@ class TransactionModel(BaseModel):
     # A sender uses each nonce once (ADR-0004); rows from before VLA-16 have none, and NULLs never collide
     __table_args__ = (
         UniqueConstraint("sender_address", "nonce", name="uq_transactions_sender_nonce"),
-        # The database refuses what the use cases already refuse, whoever writes the row (VLA-25)
+        # The database refuses what the use cases already refuse, whoever writes the row
         CheckConstraint("amount >= 0", name="ck_transactions_amount_not_negative"),
         CheckConstraint("fee >= 0", name="ck_transactions_fee_not_negative"),
     )

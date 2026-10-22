@@ -1,5 +1,5 @@
 # Development: `docker compose up` migrates, then starts the API with --reload on your code.
-# Production is deploy/docker-compose.prod.yml (VLA-23). Every ${VAR:-default} can be set in the shell or in .env.
+# Production is deploy/docker-compose.prod.yml. Every ${VAR:-default} can be set in the shell or in .env.
 
 x-app: &app
   build: .
@@ -13,7 +13,7 @@ x-app: &app
     # The admin the migrate service seeds; these defaults are for development only
     ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@veriledger.com}
     ADMIN_PASSWORD: ${ADMIN_PASSWORD:-adminpassword123}
-    # Peers on this machine or the Compose network (VLA-19); never in production
+    # Peers on this machine or the Compose network; never in production
     ALLOW_PRIVATE_PEERS: "true"
     PEER_TOKEN: ${PEER_TOKEN:-}
     MINING_DIFFICULTY: ${MINING_DIFFICULTY:-4}
@@ -22,7 +22,7 @@ x-app: &app
     DEMO_ACCOUNTS_PER_IP_PER_HOUR: ${DEMO_ACCOUNTS_PER_IP_PER_HOUR:-5}
     DEMO_MAX_ACTIVE_ACCOUNTS: ${DEMO_MAX_ACTIVE_ACCOUNTS:-500}
     DEMO_MINES_PER_HOUR: ${DEMO_MINES_PER_HOUR:-10}
-    # VLA-29's abuse limits; 0 or false turns one off
+    # The abuse limits; 0 or false turns one off
     LOGIN_ATTEMPTS_PER_MINUTE: ${LOGIN_ATTEMPTS_PER_MINUTE:-5}
     TRANSACTIONS_PER_SENDER_PER_MINUTE: ${TRANSACTIONS_PER_SENDER_PER_MINUTE:-60}
     MINE_ONE_AT_A_TIME: ${MINE_ONE_AT_A_TIME:-true}
@@ -37,7 +37,7 @@ services:
     ports:
       - "${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
-      # A new name for PostgreSQL 16, which cannot open the files of the 15 this file used before
+      # One volume per PostgreSQL major version: 16 cannot open the files of 15
       - postgres16_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U veriledger -d veriledger"]
@@ -45,10 +45,9 @@ services:
       timeout: 5s
       retries: 10
 
-  # Runs the migrations once and exits; the API starts only if it succeeds
   migrate:
     <<: *app
-    # Migrates, then creates the admin once (VLA-24); the API starts only if both succeed
+    # Migrates, then creates the admin once; the API starts only if both succeed
     command: ["sh", "-c", "alembic -c backend/alembic.ini upgrade head && python -m backend.app.cli.seed"]
     depends_on:
       postgres:

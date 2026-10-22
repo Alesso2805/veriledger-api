@@ -73,7 +73,7 @@ def test_ar12_every_use_case_is_one_class_with_execute_and_a_test_file() -> None
 
 
 def test_ar16_no_repository_or_use_case_commits() -> None:
-    # The request's session dependency is the only place that commits (ADR-0007)
+    # Here only the request's session dependency commits (ADR-0007); the CLI commands commit their own sessions
     files = [*(APP / "application").rglob("*.py"), *(APP / "infrastructure" / "repositories").rglob("*.py")]
     commits = sorted(
         f"{path.relative_to(APP).as_posix()}:{node.lineno}"

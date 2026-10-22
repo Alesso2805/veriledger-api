@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from backend.app.domain.entities.user import UserRole
 
@@ -13,12 +13,10 @@ class UserCreateDTO(BaseModel):
 
 class UserResponseDTO(BaseModel):
     id: str
-    # Null for a demo account, whose display_name is "Guest XXXX"; otherwise the email
-    email: str | None
+    email: str | None = Field(description='Null for a demo account, whose display_name is "Guest XXXX"')
     display_name: str
     role: UserRole
-    # Only a demo account expires
-    expires_at: datetime | None
+    expires_at: datetime | None = Field(description="Set only for a demo account")
     created_at: datetime
     updated_at: datetime
 

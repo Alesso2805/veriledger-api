@@ -29,7 +29,8 @@ def too_many_requests(detail: str, retry_after: float) -> HTTPException:
 
 
 def client_address(request: Request) -> str:
-    # Behind Caddy this is the visitor's address only with uvicorn's --proxy-headers (SPEC › Demo limits)
+    # Behind Caddy this is the visitor's address only because the API trusts Caddy's X-Forwarded-For
+    # (FORWARDED_ALLOW_IPS, SPEC › Demo limits)
     return request.client.host if request.client else "unknown"
 
 
@@ -49,8 +50,7 @@ async def enforce_demo_account_limits(request: Request, db: AsyncSession) -> Non
 
 
 def enforce_demo_mining_limit(user: User) -> None:
-    # Only demo accounts are limited
-    if user.expires_at is None or not settings.demo_mines_per_hour:
+    if not user.is_demo or not settings.demo_mines_per_hour:
         return
     limit = settings.demo_mines_per_hour
     retry_after = limiter.hit(f"mining by {user.id}", limit, HOUR)
@@ -60,7 +60,7 @@ def enforce_demo_mining_limit(user: User) -> None:
 
 
 def enforce_login_limit(request: Request) -> None:
-    # Every attempt counts, so guessing passwords costs a minute per few tries (VLA-29)
+    # Every attempt counts, so guessing passwords costs a minute per few tries
     if not settings.login_attempts_per_minute:
         return
     retry_after = limiter.hit(f"sign-ins from {client_address(request)}", settings.login_attempts_per_minute, MINUTE)
@@ -79,7 +79,7 @@ def enforce_transaction_limit(sender_address: str) -> None:
 
 @asynccontextmanager
 async def one_mine_at_a_time() -> AsyncIterator[None]:
-    """A second mining request answers 429 at once instead of racing the first one to the same height (VLA-29)."""
+    """A second mining request answers 429 at once instead of racing the first one to the same height."""
     if not settings.mine_one_at_a_time:
         yield
         return

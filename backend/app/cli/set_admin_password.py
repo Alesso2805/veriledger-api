@@ -13,7 +13,7 @@ logger = structlog.get_logger()
 
 
 async def set_admin_password() -> None:
-    """Gives the admin of ADMIN_EMAIL the password ADMIN_PASSWORD (VLA-28), since the seed only creates it once."""
+    """Gives the admin of ADMIN_EMAIL the password ADMIN_PASSWORD, since the seed only creates it once."""
     setup_logging()
     if settings.app_env == "production" and settings.admin_password in ("", DEVELOPMENT_ADMIN_PASSWORD):
         raise SystemExit("ADMIN_PASSWORD must be set in production; the development password is refused")

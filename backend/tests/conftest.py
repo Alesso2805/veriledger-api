@@ -6,7 +6,7 @@ from httpx import ASGITransport, AsyncClient, Response
 
 from backend.app.main import app
 
-# Every (method, path, status) the in-process client received, for the documented-status test (VLA-25)
+# Every (method, path, status) the in-process client received, for the documented-status test
 RESPONSES: list[tuple[str, str, int]] = []
 DOCUMENTED_STATUS_TEST = "test_every_documented_status_code_was_produced"
 

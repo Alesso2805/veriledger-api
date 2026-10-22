@@ -1,4 +1,3 @@
-# Environments
 .env
 # deploy/backup.sh writes here
 backups/
@@ -9,7 +8,6 @@ ENV/
 env.bak/
 venv.bak/
 
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -33,7 +31,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Pytest / Coverage
 .pytest_cache/
 htmlcov/
 .tox/
@@ -47,23 +44,17 @@ coverage.xml
 *.py,cover
 .hypothesis/
 
-# Type Checking & Linting
 .mypy_cache/
 .ruff_cache/
 .dmypy.json
 dmypy.json
 
-# IDE / OS
 .idea/
 .vscode/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
-
-# Note: uv.lock is intentionally NOT ignored.
-# For applications (unlike libraries), it is best practice to commit the lockfile
-# to ensure reproducible builds in production and CI environments.
 
 # The coding agent's instructions and settings: local to each workstation
 CLAUDE.md

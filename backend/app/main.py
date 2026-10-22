@@ -8,7 +8,7 @@ import structlog
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.app.core.config import settings
 from backend.app.core.logger import setup_logging
@@ -57,7 +57,7 @@ app.add_middleware(
 async def tag_each_request(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     incoming = request.headers.get("X-Request-ID", "")
     request_id = incoming if REQUEST_ID.fullmatch(incoming) else uuid.uuid4().hex
-    # Every log line of this request carries its id (VLA-26)
+    # Every log line of this request carries its id
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(request_id=request_id)
     started = time.perf_counter()
@@ -85,10 +85,8 @@ app.include_router(node_router.router)
 class HealthCheckResponse(BaseModel):
     status: str
     environment: str
-    # Lets the webapp offer "Try the demo" only where POST /auth/demo exists
-    demo_mode: bool
-    # "ok" when the database answered a query, "unreachable" otherwise (VLA-26)
-    database: str
+    demo_mode: bool = Field(description='Whether POST /auth/demo exists, so the webapp offers "Try the demo"')
+    database: str = Field(description='"ok" when the database answered a query, "unreachable" otherwise')
 
 
 @app.get(

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Dumps the VeriLedger database of deploy/docker-compose.prod.yml (VLA-28), from the repository root.
+# Dumps the VeriLedger database of deploy/docker-compose.prod.yml, from the repository root.
 # Usage: deploy/backup.sh [file], backups/veriledger-<UTC time>.dump by default. Restore it with deploy/restore.sh.
 set -eu
 

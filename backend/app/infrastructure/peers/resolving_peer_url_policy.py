@@ -17,8 +17,8 @@ async def resolve_host(host: str) -> list[str]:
 
 
 def is_public(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-    # ::ffff:224.0.0.1 is the IPv4 address it carries; not every 3.12 release sees that by itself
-    # (3.12.3, which CI runs, takes it for a public unicast address)
+    # ::ffff:224.0.0.1 is the IPv4 address it carries; early 3.12 releases, which requires-python admits,
+    # take it for a public unicast address
     if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
         address = address.ipv4_mapped
     # is_global leaves out loopback, private, link-local, shared and reserved ranges, but not multicast

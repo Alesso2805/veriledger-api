@@ -19,7 +19,7 @@ class UserRepository(ABC):
 
     @abstractmethod
     async def set_password_hash(self, user_id: str, password_hash: str) -> None:
-        """Replaces the user's password hash, as rotating the admin's password does (VLA-28)."""
+        pass
 
     @abstractmethod
     async def active_demo_accounts(self, now: datetime) -> tuple[int, datetime | None]:

@@ -234,8 +234,36 @@ A demo account (ADR-0006) is a `trader` for 24 hours. Without an account, a visi
 - **A plan first.** Each story starts from a short plan, what will change and which files, agreed with the product owner before any code.
 - **Raise contradictions.** If a request contradicts this specification, the contradiction is raised before the work starts. A change to this document goes in its own `docs(spec)` commit.
 - **Small commits.** Conventional Commits, one PR per story; work over about 300 lines is split.
-- **Explain decisions.** Non-obvious decisions are explained where they are made: a comment that says why, the PR, or an ADR.
+- **Explain decisions.** Non-obvious decisions are explained where they are made: a comment that says why (under the rule below), the PR, or an ADR.
 - **Cross-repository contracts.** A change to the signed message or an endpoint the webapp uses is decided in an ADR here and lands together with its VLW story.
+
+**Comments in the code** (product owner, 2026-10-22; VLA-40). This file holds the rule, because `CLAUDE.md` stays on each workstation; the coding agent's `CLAUDE.md` points here.
+
+- **No comment by default.** A comment exists only when it holds what the code cannot say, and losing it would make a competent reader misunderstand the code, break something, or dig through git or outside documents.
+- **The code says it first.** Before writing a comment, try a better name, a named constant, an extracted function, a type or an assert. History and the reasons for a change go in the commit or the PR, never in the code.
+- **Allowed:**
+  - the why of something that looks like a mistake but is intended;
+  - outside constraints: a third party's quirk, a spec or RFC, a workaround with its issue link, a business or legal rule;
+  - warnings and invariants: an order that matters, thread safety, security;
+  - a non-obvious algorithm with its source, and units a name does not carry;
+  - the contract of a public API a tool reads. A FastAPI route's docstring and a field's `description=` become OpenAPI;
+  - a TODO with a story or an owner and a concrete action.
+- **Never:**
+  - comments that repeat the code;
+  - history or a changelog;
+  - commented-out code;
+  - separators, banners or decorative headings;
+  - docstrings that repeat parameter names or annotated types;
+  - comments addressed to the reviewer, or about instructions.
+- **Story IDs** (VLA-NN, VLW-NN) stay in only three places, and git holds the rest:
+  - where they mark a data boundary ("rows from before VLA-16");
+  - where they name the requirement a test or a CI step proves;
+  - where they point at the story that will fix a known limit.
+
+  ADR, SPEC and AR references stay, since those documents state the current rules.
+- **Kept current.** A change to the code or the environment a comment describes updates or deletes that comment in the same change.
+- **Never deleted:** tool directives (`type: ignore`, `noqa`, `# syntax=`, pragmas), shebangs, license headers, and text a tool reads at run time (FastAPI docstrings and descriptions, Alembic's revision headers, argparse help).
+- **Form:** one line where possible, in the present tense, next to the code it explains, in English.
 
 **Definition of done**
 
