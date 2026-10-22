@@ -64,3 +64,11 @@ Thumbs.db
 # Note: uv.lock is intentionally NOT ignored.
 # For applications (unlike libraries), it is best practice to commit the lockfile
 # to ensure reproducible builds in production and CI environments.
+
+# The coding agent's instructions and settings: local to each workstation
+CLAUDE.md
+.claude/
+
+# Internal working notes: the architecture audit and the comments awaiting a decision
+docs/AUDIT.md
+docs/COMMENTS_REVIEW.md
