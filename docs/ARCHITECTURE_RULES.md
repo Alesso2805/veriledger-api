@@ -1,6 +1,6 @@
 # Architecture rules
 
-Oct 20, 2026 · Sources: [SPEC.md](SPEC.md), [BACKLOG.md](BACKLOG.md), [CLAUDE.md](../CLAUDE.md), the README and [the ADRs](adr/).
+Oct 20, 2026 · Sources: [SPEC.md](SPEC.md), [BACKLOG.md](BACKLOG.md), `CLAUDE.md` (the coding agent's instructions, local to each workstation since VLA-39), the README and [the ADRs](adr/).
 
 Each rule is one sentence that a test can prove or refute. A rule about "every" module, route, table or port is checked by a test that walks the whole list, so something new that breaks it fails without anyone adding a case. Every rule has its test: VLA-13 wrote AR-01 to AR-13 and AR-15, VLA-15 wrote AR-14, and VLA-32 wrote AR-16.
 
