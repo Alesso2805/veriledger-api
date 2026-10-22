@@ -8,6 +8,18 @@ One server runs everything behind Caddy, on one hostname (ADR-0005): the webapp 
 - Ports 80 and 443 open to the internet. Caddy needs port 80 to obtain its certificate.
 - A DNS `A` (and, with IPv6, `AAAA`) record for your domain, pointing at the server.
 
+### On a cloud VM with a free dynamic DNS name
+
+This covers a setup such as a Google Cloud VM with a DuckDNS name. Three things can keep Caddy from getting its certificate:
+
+- **The address.** Reserve a static external IP for the VM. An ephemeral one changes when the VM stops, and the name then points at someone else's machine.
+- **IPv6.** When the name has an `AAAA` record, Let's Encrypt tries IPv6 first, and a stale record sends the challenge to another machine. If the VM has no IPv6 address (the default on Google Cloud), delete the `AAAA` record: `dig +short AAAA <name>` should then print nothing.
+- **The cloud's firewall.** It filters traffic before the server's own firewall does. On Google Cloud, tick "Allow HTTP traffic" and "Allow HTTPS traffic" on the VM. Opening UDP 443 for HTTP/3 is optional; browsers fall back to TCP.
+
+Before step 3, check that `dig +short <name>` prints the VM's address. Keep `HTTP_PORT=80` and `HTTPS_PORT=443`, because the challenge arrives on those ports.
+
+A failed attempt does not use up the production rate limit: Caddy retries against Let's Encrypt's staging CA, and switches back to production once a retry succeeds. `duckdns.org` is on the Public Suffix List, so Let's Encrypt counts your name's per-domain limit apart from other DuckDNS names.
+
 ## 1. Get the deploy files
 
 Only `deploy/` is used: the images come from GHCR.
@@ -92,6 +104,7 @@ Set the previous tags and run `up -d` again. The migrations only go forward. If 
 
 - Back up every night: [backup-and-restore.md](backup-and-restore.md).
 - Rotate a secret: [rotate-secrets.md](rotate-secrets.md).
+- Never run `down -v` on the server: it deletes the database's volume and Caddy's certificates. Let's Encrypt issues the same certificate only 5 times a week.
 
 ## Rehearse on your own machine
 
