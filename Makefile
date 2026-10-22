@@ -30,7 +30,7 @@ migrate:
 seed:
 	uv run python -m backend.app.cli.seed
 
-# docs/openapi.json, the contract the webapp generates its types from (VLA-37)
+# docs/openapi.json, the contract the webapp generates its types from
 openapi:
 	DATABASE_URL=$${DATABASE_URL:-sqlite+aiosqlite:///:memory:} uv run python -m backend.app.openapi_document
 

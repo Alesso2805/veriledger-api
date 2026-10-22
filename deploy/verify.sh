@@ -1,5 +1,5 @@
 #!/bin/sh
-# Checks a running VeriLedger behind Caddy (VLA-27): the API under /api, the webapp at /, over HTTPS.
+# Checks a running VeriLedger behind Caddy: the API under /api, the webapp at /, over HTTPS.
 # Usage: deploy/verify.sh https://<domain>. With ADMIN_EMAIL and ADMIN_PASSWORD set, it also signs in.
 # A rehearsal on localhost trusts Caddy's own CA through CURL_CA_BUNDLE (docs/runbooks/deploy.md).
 set -eu

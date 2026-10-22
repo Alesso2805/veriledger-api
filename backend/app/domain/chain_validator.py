@@ -24,7 +24,7 @@ def amount(value: Any) -> Decimal:
 
 
 class ChainValidator:
-    """SPEC › Valid chain: whether a peer's chain, as /blocks/full serves it, may replace ours (VLA-18)."""
+    """SPEC › Valid chain: whether a peer's chain, as /blocks/full serves it, may replace ours."""
 
     def __init__(self, hasher: HasherService, signature_service: SignatureService, difficulty: int, reward: float):
         self._hasher = hasher

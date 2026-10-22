@@ -21,7 +21,7 @@ from backend.app.infrastructure.models.user import UserModel
 from backend.app.infrastructure.security.password_hasher import PasswordHasherImpl
 from backend.app.presentation.dependencies import limits
 
-# Never the app's database: the fixture drops every table. VLA-25 provides one in CI.
+# Never the app's database: the fixture drops every table. CI provides one.
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "")
 
 ADMIN_EMAIL = "admin@example.com"

@@ -1,5 +1,4 @@
 # syntax=docker/dockerfile:1
-# The API's production image (VLA-22): exactly uv.lock, no dev tools, a non-root user. Base images are pinned by digest.
 
 # uv builds the virtual environment; the final image only copies it, so neither uv nor its cache ships
 FROM python:3.12.13-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36 AS build
@@ -27,5 +26,5 @@ EXPOSE 8000
 # The slim image has no curl
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
-# The request log is the API's own JSON line with its request id (VLA-26), not uvicorn's plain-text one
+# The request log is the API's own JSON line with its request id, not uvicorn's plain-text one
 CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

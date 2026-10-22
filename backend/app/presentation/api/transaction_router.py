@@ -66,7 +66,7 @@ async def submit_transaction(
 @router.get("", response_model=PaginatedTransactionResponseDTO)
 async def list_transactions(
     db: DbSession,
-    # Only the mempool for now: a confirmed transaction would also need its block, which this list does not read
+    # Only the mempool: a confirmed transaction would also need its block, which this list does not read
     tx_status: Literal["PENDING"] = Query("PENDING", alias="status"),
     skip: int = Query(0, ge=0),
     limit: int = Query(MAX_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),

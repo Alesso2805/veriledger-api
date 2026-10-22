@@ -10,7 +10,6 @@ class ListPendingTransactionsUseCase:
     async def execute(self, skip: int, limit: int) -> PaginatedTransactionResponseDTO:
         transactions = await self.tx_repo.list_by_status(TransactionStatus.PENDING, skip, limit)
         return PaginatedTransactionResponseDTO(
-            # Pending transactions have no block yet, so none is looked up
             items=[TransactionResponseDTO.from_entity(transaction) for transaction in transactions],
             total=await self.tx_repo.count_by_status(TransactionStatus.PENDING),
             page=skip // limit + 1,

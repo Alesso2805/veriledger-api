@@ -30,14 +30,14 @@ ACCESS: dict[str, frozenset[UserRole] | None] = {
     "GET /wallets/{address}/nonce": None,
     "GET /wallets/{address}/transactions": None,
     "POST /transactions": ANY_ROLE,
-    "GET /transactions": None,  # public read (ADR-0006)
-    "GET /transactions/{tx_hash}": None,  # public read (ADR-0006)
-    "GET /blocks": None,  # public read (ADR-0006)
-    "GET /blocks/full": None,  # public read (ADR-0006)
-    "GET /blocks/{block_hash}": None,  # public read (ADR-0006)
+    "GET /transactions": None,
+    "GET /transactions/{tx_hash}": None,
+    "GET /blocks": None,
+    "GET /blocks/full": None,
+    "GET /blocks/{block_hash}": None,
     "POST /blocks/mine": TRADER_OR_ADMIN,
     "POST /nodes/register": ADMIN,
-    "GET /nodes": None,  # public read (ADR-0006)
+    "GET /nodes": None,
     "POST /nodes/resolve": ADMIN,
 }
 

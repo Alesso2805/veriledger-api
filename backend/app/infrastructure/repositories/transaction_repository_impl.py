@@ -126,7 +126,7 @@ class TransactionRepositoryImpl(TransactionRepository):
         incoming_txs = res_in.scalars().all()
         received = sum(float(tx.amount) for tx in incoming_txs)
 
-        # Sent amounts + fees (where status is PENDING or CONFIRMED to avoid double spend in mempool)
+        # Pending debits count too, so the mempool cannot spend the same funds twice
         stmt_out = select(TransactionModel).where(
             TransactionModel.sender_address == address,
             TransactionModel.status.in_([TransactionStatus.CONFIRMED, TransactionStatus.PENDING]),

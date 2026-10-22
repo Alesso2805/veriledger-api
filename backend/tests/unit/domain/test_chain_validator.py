@@ -141,9 +141,6 @@ def reason(blocks_transactions: list[list[dict[str, Any]]]) -> str | None:
     return validator.violation(chain_of(*blocks_transactions))
 
 
-# Rules on blocks
-
-
 def test_a_mined_history_keeps_every_rule() -> None:
     assert reason(history()) is None
 
@@ -206,9 +203,6 @@ def test_a_malformed_block_is_refused(field: str) -> None:
     del chain[1][field]
 
     assert validator.violation(chain) == "a block is malformed"
-
-
-# Rules on transactions
 
 
 def test_a_block_without_a_coinbase_is_refused() -> None:

@@ -33,5 +33,4 @@ class Ed25519ServiceImpl(SignatureService, WalletService):
             public_key.verify(signature_bytes, payload_bytes)
             return True
         except (ValueError, InvalidSignature, TypeError):
-            # Hex decoding errors or verification failure
             return False

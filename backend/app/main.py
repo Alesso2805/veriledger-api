@@ -57,7 +57,7 @@ app.add_middleware(
 async def tag_each_request(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     incoming = request.headers.get("X-Request-ID", "")
     request_id = incoming if REQUEST_ID.fullmatch(incoming) else uuid.uuid4().hex
-    # Every log line of this request carries its id (VLA-26)
+    # Every log line of this request carries its id
     structlog.contextvars.clear_contextvars()
     structlog.contextvars.bind_contextvars(request_id=request_id)
     started = time.perf_counter()

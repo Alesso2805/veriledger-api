@@ -17,7 +17,7 @@ logger = structlog.get_logger()
 async def seed_admin() -> bool:
     """Creates the admin of ADMIN_EMAIL unless it exists; True when this run created it."""
     setup_logging()
-    # A known password on a public node's admin makes anyone its admin (VLA-24)
+    # A known password on a public node's admin makes anyone its admin
     if settings.app_env == "production" and settings.admin_password in ("", DEVELOPMENT_ADMIN_PASSWORD):
         raise SystemExit("ADMIN_PASSWORD must be set in production; the development password is refused")
     # The factory is read when the command runs, so tests can point it at their database

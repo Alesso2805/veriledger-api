@@ -23,10 +23,7 @@ class ResolveConflictsUseCase:
         self._validator = validator
 
     async def execute(self) -> bool:
-        """
-        Polls all registered peers, finds the longest valid chain, and replaces ours if needed.
-        Returns True if our chain was replaced.
-        """
+        """Adopts the longest valid peer chain if it is longer than ours; True when ours was replaced."""
         nodes = await self._node_repo.get_all()
         # The whole local chain, not one page of it
         max_length = await self._block_repo.count()

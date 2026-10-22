@@ -108,7 +108,7 @@ async def test_an_unreadable_peer_is_skipped(mock_node_repo: Any, mock_block_rep
 async def test_our_length_is_the_whole_chain_not_one_page(
     mock_node_repo: Any, mock_block_repo: Any, mock_peer_client: Any
 ) -> None:
-    # With 150 blocks of ours, a peer's 120 must not look longer, as it did when only one page was counted
+    # With 150 blocks of ours, a peer's 120 must not look longer
     resolve = use_case(
         mock_node_repo, mock_block_repo, mock_peer_client, 150, {"http://a": chain(120), "http://b": None}
     )
