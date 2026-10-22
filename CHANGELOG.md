@@ -4,6 +4,11 @@ Every notable change to the VeriLedger API. The format follows [Keep a Changelog
 
 ## [Unreleased]
 
+### Added
+
+- **An MIT license** and **a security policy**: vulnerabilities are reported privately, through GitHub (VLA-39).
+- **A README for visitors**, with the live demo, its interactive documentation, and the audit's result (VLA-39).
+
 ## [1.0.0] - 2026-10-21
 
 ### Added
