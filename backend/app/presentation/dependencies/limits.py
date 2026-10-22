@@ -50,8 +50,7 @@ async def enforce_demo_account_limits(request: Request, db: AsyncSession) -> Non
 
 
 def enforce_demo_mining_limit(user: User) -> None:
-    # Only demo accounts are limited
-    if user.expires_at is None or not settings.demo_mines_per_hour:
+    if not user.is_demo or not settings.demo_mines_per_hour:
         return
     limit = settings.demo_mines_per_hour
     retry_after = limiter.hit(f"mining by {user.id}", limit, HOUR)

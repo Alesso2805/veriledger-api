@@ -4,16 +4,13 @@ from typing import Any
 import httpx
 import structlog
 
-from backend.app.core.config import settings
+from backend.app.core.config import MAX_PAGE_SIZE, settings
 from backend.app.domain.errors import UnsafePeerUrlError
 from backend.app.domain.ports.services.peer_client import PeerClient
 from backend.app.domain.ports.services.peer_url_policy import PeerUrlPolicy
 from backend.app.infrastructure.peers.resolving_peer_url_policy import ResolvingPeerUrlPolicy
 
 logger = structlog.get_logger()
-
-# The largest page /blocks/full serves (ADR-0006)
-PAGE_SIZE = 100
 
 
 class HttpxPeerClient(PeerClient):
@@ -66,7 +63,7 @@ class HttpxPeerClient(PeerClient):
         try:
             async with self._client() as client:
                 while True:
-                    params = {"skip": len(blocks), "limit": PAGE_SIZE}
+                    params = {"skip": len(blocks), "limit": MAX_PAGE_SIZE}
                     response = await client.get(f"{peer_url}/blocks/full", params=params)
                     if response.status_code != 200:
                         return None
@@ -74,7 +71,7 @@ class HttpxPeerClient(PeerClient):
                     blocks += page["items"]
                     # The first page's total bounds the walk, so a peer cannot keep it going
                     total = page["total"] if total is None else total
-                    if len(page["items"]) < PAGE_SIZE or len(blocks) >= total:
+                    if len(page["items"]) < MAX_PAGE_SIZE or len(blocks) >= total:
                         return blocks
         except (httpx.HTTPError, KeyError, TypeError, ValueError):
             return None

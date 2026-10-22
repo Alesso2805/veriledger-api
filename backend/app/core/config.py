@@ -9,6 +9,8 @@ EXAMPLE_SECRET_KEY = "supersecretkey_change_me_in_production"
 MIN_SECRET_KEY_BYTES = 32
 # The seed's development password, which production refuses (VLA-24)
 DEVELOPMENT_ADMIN_PASSWORD = "adminpassword123"
+# ADR-0006 caps every page of a public read at this size; peers page through each other's chains at it
+MAX_PAGE_SIZE = 100
 
 
 class Settings(BaseSettings):

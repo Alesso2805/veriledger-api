@@ -2,6 +2,7 @@ import uuid
 from datetime import UTC, datetime
 
 from backend.app.application.dto.block import BlockResponseDTO
+from backend.app.domain.chain_validator import COINBASE_SENDER, GENESIS_PREVIOUS_HASH
 from backend.app.domain.entities.block import Block
 from backend.app.domain.entities.node import Node
 from backend.app.domain.entities.transaction import Transaction, TransactionStatus
@@ -50,22 +51,21 @@ class MineBlockUseCase:
             previous_hash = latest_block.block_hash
             block_number = latest_block.block_number + 1
         else:
-            # Genesis block
-            previous_hash = "0" * 64
+            previous_hash = GENESIS_PREVIOUS_HASH
             block_number = 0
 
         now = datetime.now(UTC)
 
         coinbase_tx = Transaction(
             id=str(uuid.uuid4()),
-            sender_address="SYSTEM",
+            sender_address=COINBASE_SENDER,
             receiver_address=miner_address,
             amount=self.reward + total_fees,
             fee=0.0,
             status=TransactionStatus.CONFIRMED,
             timestamp=now,
             signature="COINBASE",
-            # The block number makes each coinbase's hash unique, now that the hash covers no id or time
+            # The block number makes each coinbase's hash unique, since the hash covers no id or time
             nonce=block_number,
         )
         coinbase_tx.tx_hash = self.hasher.hash_transaction(coinbase_tx)

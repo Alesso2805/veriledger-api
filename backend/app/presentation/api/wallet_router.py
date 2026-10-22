@@ -6,7 +6,7 @@ from backend.app.application.use_cases.wallet.generate_wallet import GenerateWal
 from backend.app.application.use_cases.wallet.get_balance import GetBalanceUseCase
 from backend.app.application.use_cases.wallet.get_next_nonce import GetNextNonceUseCase
 from backend.app.application.use_cases.wallet.list_address_transactions import ListAddressTransactionsUseCase
-from backend.app.core.config import settings
+from backend.app.core.config import MAX_PAGE_SIZE, settings
 from backend.app.infrastructure.repositories.block_repository_impl import BlockRepositoryImpl
 from backend.app.infrastructure.repositories.transaction_repository_impl import TransactionRepositoryImpl
 from backend.app.infrastructure.security.ed25519_service import Ed25519ServiceImpl
@@ -54,8 +54,7 @@ async def list_address_transactions(
     address: str,
     db: DbSession,
     skip: int = Query(0, ge=0),
-    # ADR-0006 caps the pages of public reads at 100
-    limit: int = Query(100, ge=1, le=100),
+    limit: int = Query(MAX_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
 ) -> PaginatedTransactionResponseDTO:
     use_case = ListAddressTransactionsUseCase(TransactionRepositoryImpl(db), BlockRepositoryImpl(db))
     return await use_case.execute(address, skip=skip, limit=limit)

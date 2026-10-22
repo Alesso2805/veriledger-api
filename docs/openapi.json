@@ -196,10 +196,12 @@
       "HealthCheckResponse": {
         "properties": {
           "database": {
+            "description": "\"ok\" when the database answered a query, \"unreachable\" otherwise",
             "title": "Database",
             "type": "string"
           },
           "demo_mode": {
+            "description": "Whether POST /auth/demo exists, so the webapp offers \"Try the demo\"",
             "title": "Demo Mode",
             "type": "boolean"
           },
@@ -420,6 +422,7 @@
       "TransactionCreateRequestDTO": {
         "properties": {
           "amount": {
+            "description": "The 8-decimal string that was signed (ADR-0004), so neither side formats a float",
             "examples": [
               "10.00000000"
             ],
@@ -437,6 +440,7 @@
             "type": "string"
           },
           "nonce": {
+            "description": "The next nonce of GET /wallets/{address}/nonce; a string or a float is refused, as in the message",
             "examples": [
               1
             ],
@@ -494,6 +498,7 @@
                 "type": "null"
               }
             ],
+            "description": "Null while the transaction waits in the mempool",
             "title": "Block Hash"
           },
           "block_id": {
@@ -516,6 +521,7 @@
                 "type": "null"
               }
             ],
+            "description": "Null while the transaction waits in the mempool",
             "title": "Block Number"
           },
           "fee": {
@@ -645,6 +651,7 @@
                 "type": "null"
               }
             ],
+            "description": "Null for a demo account, whose display_name is \"Guest XXXX\"",
             "title": "Email"
           },
           "expires_at": {
@@ -657,6 +664,7 @@
                 "type": "null"
               }
             ],
+            "description": "Set only for a demo account",
             "title": "Expires At"
           },
           "id": {

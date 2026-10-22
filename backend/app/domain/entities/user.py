@@ -19,8 +19,11 @@ class User:
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
-    # Only a demo account expires
     expires_at: datetime | None = None
+
+    @property
+    def is_demo(self) -> bool:
+        return self.expires_at is not None
 
     @property
     def display_name(self) -> str:

@@ -11,11 +11,21 @@ from backend.app.domain.signed_message import AMOUNT, MAX_NONCE
 class TransactionCreateRequestDTO(BaseModel):
     sender_address: str
     receiver_address: str
-    # The same 8-decimal strings that were signed (ADR-0004), so neither side formats a float
-    amount: str = Field(..., pattern=AMOUNT.pattern, examples=["10.00000000"])
+    amount: str = Field(
+        ...,
+        pattern=AMOUNT.pattern,
+        examples=["10.00000000"],
+        description="The 8-decimal string that was signed (ADR-0004), so neither side formats a float",
+    )
     fee: str = Field(default="0.00000000", pattern=AMOUNT.pattern, examples=["0.10000000"])
-    # The next nonce of GET /wallets/{address}/nonce; strict, so a string or a float is refused like in the message
-    nonce: int = Field(..., ge=1, le=MAX_NONCE, strict=True, examples=[1])
+    nonce: int = Field(
+        ...,
+        ge=1,
+        le=MAX_NONCE,
+        strict=True,
+        examples=[1],
+        description="The next nonce of GET /wallets/{address}/nonce; a string or a float is refused, as in the message",
+    )
     signature: str
     payload: str | None = None
 
@@ -33,9 +43,8 @@ class TransactionResponseDTO(BaseModel):
     payload: str | None = None
     block_id: str | None = None
     nonce: int | None = None
-    # Null while the transaction waits in the mempool
-    block_number: int | None = None
-    block_hash: str | None = None
+    block_number: int | None = Field(default=None, description="Null while the transaction waits in the mempool")
+    block_hash: str | None = Field(default=None, description="Null while the transaction waits in the mempool")
 
     @classmethod
     def from_entity(cls, transaction: Transaction, block: Block | None = None) -> Self:

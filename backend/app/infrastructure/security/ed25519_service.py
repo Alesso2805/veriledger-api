@@ -3,11 +3,11 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from backend.app.domain.ports.services.signature import SignatureService
-from backend.app.domain.ports.services.wallet import WalletService
+from backend.app.domain.ports.services.wallet import KeyPair, WalletService
 
 
 class Ed25519ServiceImpl(SignatureService, WalletService):
-    def generate_key_pair(self) -> tuple[str, str]:
+    def generate_key_pair(self) -> KeyPair:
         private_key = ed25519.Ed25519PrivateKey.generate()
         public_key = private_key.public_key()
 
@@ -21,7 +21,7 @@ class Ed25519ServiceImpl(SignatureService, WalletService):
             format=serialization.PublicFormat.Raw,
         )
 
-        return public_bytes.hex(), private_bytes.hex()
+        return KeyPair(public_bytes.hex(), private_bytes.hex())
 
     def verify_signature(self, public_key_hex: str, payload: str, signature_hex: str) -> bool:
         try:

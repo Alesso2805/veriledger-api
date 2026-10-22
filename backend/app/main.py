@@ -8,7 +8,7 @@ import structlog
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend.app.core.config import settings
 from backend.app.core.logger import setup_logging
@@ -85,10 +85,8 @@ app.include_router(node_router.router)
 class HealthCheckResponse(BaseModel):
     status: str
     environment: str
-    # Lets the webapp offer "Try the demo" only where POST /auth/demo exists
-    demo_mode: bool
-    # "ok" when the database answered a query, "unreachable" otherwise (VLA-26)
-    database: str
+    demo_mode: bool = Field(description='Whether POST /auth/demo exists, so the webapp offers "Try the demo"')
+    database: str = Field(description='"ok" when the database answered a query, "unreachable" otherwise')
 
 
 @app.get(

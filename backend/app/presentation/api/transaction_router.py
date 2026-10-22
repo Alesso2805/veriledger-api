@@ -10,6 +10,7 @@ from backend.app.application.dto.transaction import (
 from backend.app.application.use_cases.ledger.get_transaction import GetTransactionByHashUseCase
 from backend.app.application.use_cases.ledger.list_pending_transactions import ListPendingTransactionsUseCase
 from backend.app.application.use_cases.ledger.submit_transaction import SubmitTransactionUseCase
+from backend.app.core.config import MAX_PAGE_SIZE
 from backend.app.domain.entities.user import User, UserRole
 from backend.app.domain.errors import NonceConflictError
 from backend.app.infrastructure.peers.httpx_peer_client import HttpxPeerClient
@@ -68,8 +69,7 @@ async def list_transactions(
     # Only the mempool for now: a confirmed transaction would also need its block, which this list does not read
     tx_status: Literal["PENDING"] = Query("PENDING", alias="status"),
     skip: int = Query(0, ge=0),
-    # ADR-0006 caps the pages of public reads at 100
-    limit: int = Query(100, ge=1, le=100),
+    limit: int = Query(MAX_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
 ) -> PaginatedTransactionResponseDTO:
     return await ListPendingTransactionsUseCase(TransactionRepositoryImpl(db)).execute(skip=skip, limit=limit)
 

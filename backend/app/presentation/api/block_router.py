@@ -9,7 +9,7 @@ from backend.app.application.dto.block import (
 )
 from backend.app.application.dto.transaction import TransactionResponseDTO
 from backend.app.application.use_cases.ledger.mine_block import MineBlockUseCase
-from backend.app.core.config import settings
+from backend.app.core.config import MAX_PAGE_SIZE, settings
 from backend.app.domain.entities.block import Block
 from backend.app.domain.entities.user import User, UserRole
 from backend.app.domain.errors import BlockHeightTakenError
@@ -62,8 +62,7 @@ async def _full_block_response(block: Block, tx_repo: TransactionRepositoryImpl)
 async def get_blocks(
     db: DbSession,
     skip: int = Query(0, ge=0),
-    # ADR-0006 caps the pages of public reads at 100
-    limit: int = Query(100, ge=1, le=100),
+    limit: int = Query(MAX_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
 ) -> PaginatedBlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
     blocks = await block_repo.get_all_blocks(skip=skip, limit=limit)
@@ -79,8 +78,7 @@ async def get_blocks(
 async def get_blocks_full(
     db: DbSession,
     skip: int = Query(0, ge=0),
-    # ADR-0006 caps the pages of public reads at 100
-    limit: int = Query(100, ge=1, le=100),
+    limit: int = Query(MAX_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
 ) -> PaginatedFullBlockResponseDTO:
     block_repo = BlockRepositoryImpl(db)
     tx_repo = TransactionRepositoryImpl(db)

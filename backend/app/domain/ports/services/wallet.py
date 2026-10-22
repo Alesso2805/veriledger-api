@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
+from typing import NamedTuple
+
+
+class KeyPair(NamedTuple):
+    public_key_hex: str
+    private_key_hex: str
 
 
 class WalletService(ABC):
     @abstractmethod
-    def generate_key_pair(self) -> tuple[str, str]:
-        """
-        Generates a new key pair.
-        Returns:
-            tuple[str, str]: A tuple containing (public_key_hex, private_key_hex)
-        """
+    def generate_key_pair(self) -> KeyPair:
         pass
